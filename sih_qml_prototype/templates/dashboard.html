@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<section class="dash-header">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <div class="eyebrow">
+        <span>●</span>
+        <span>Experimental Telemetry & Benchmark Analysis</span>
+      </div>
+      <h1>Evaluation Dashboard</h1>
+      <p class="lede" style="margin-bottom: 8px;">Held-out test set (25% stratified partition) — models never encountered these samples during training.</p>
+    </div>
+    <div class="pill" style="border-color: var(--border-glass); background: rgba(0, 229, 255, 0.08); color: var(--primary-cyan); font-weight: 600; padding: 8px 16px; font-size: 13px;">
+      ⚛ Backend: {{ results.quantum_backend_display or results.hybrid_vqc.backend or 'Local NumPy Simulator' }}
+    </div>
+  </div>
+</section>
+
+<!-- Quick Telemetry Stat Cards -->
+<div class="grid-3" style="margin-bottom: 24px;">
+  <div class="card" style="border-left: 3px solid var(--primary-cyan);">
+    <h3>Hybrid VQC Accuracy</h3>
+    <div style="font-size: 32px; font-family: var(--font-heading); font-weight: 800; color: var(--quantum-teal); margin: 6px 0;">
+      <span class="count-num" data-target="{{ results.hybrid_vqc.accuracy * 100 }}" data-decimals="1" data-suffix="%">{{ "%.1f"|format(results.hybrid_vqc.accuracy*100) }}%</span>
+    </div>
+    <p>4 Qubits · {{ results.hybrid_vqc.n_params }} Trainable Quantum Gates</p>
+  </div>
+  
+  <div class="card" style="border-left: 3px solid var(--accent-violet);">
+    <h3>Classical Baseline (Same 4 Feat)</h3>
+    <div style="font-size: 32px; font-family: var(--font-heading); font-weight: 800; color: var(--text-pure); margin: 6px 0;">
+      <span class="count-num" data-target="{{ results.logistic_regression_same_4_features.accuracy * 100 }}" data-decimals="1" data-suffix="%">{{ "%.1f"|format(results.logistic_regression_same_4_features.accuracy*100) }}%</span>
+    </div>
+    <p>Apples-to-apples 4 PCA dimension benchmark</p>
+  </div>
+
+  <div class="card" style="border-left: 3px solid var(--quantum-teal);">
+    <h3>Quantum Model ROC-AUC</h3>
+    <div style="font-size: 32px; font-family: var(--font-heading); font-weight: 800; color: var(--primary-cyan); margin: 6px 0;">
+      <span class="count-num" data-target="{{ results.hybrid_vqc.auc }}" data-decimals="3" data-suffix="">{{ "%.3f"|format(results.hybrid_vqc.auc) }}</span>
+    </div>
+    <p>Binary cross-entropy / Parameter-shift rule</p>
+  </div>
+</div>
+
+<section class="card wide">
+  <h2>⚡ Classical Baselines vs Hybrid Quantum Model</h2>
+  <img src="{{ url_for('static', filename='comparison.png') }}?v={{ v }}" class="chart-img" alt="Model comparison">
+
+  <div class="metrics-table-wrapper">
+    <table class="metrics-table">
+      <thead>
+        <tr>
+          <th>Model Architecture</th>
+          <th>Accuracy</th>
+          <th>Precision</th>
+          <th>Recall</th>
+          <th>F1-Score</th>
+          <th>ROC-AUC</th>
+          <th>Train Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Logistic Regression <span class="muted">(30 features)</span></td>
+          <td><span class="count-num" data-target="{{ results.logistic_regression.accuracy * 100 }}" data-decimals="1" data-suffix="%">{{ "%.1f"|format(results.logistic_regression.accuracy*100) }}%</span></td>
+          <td><span class="count-num" data-target="{{ results.logistic_regression.precision }}" data-decimals="3">{{ "%.3f"|format(results.logistic_regression.precision) }}</span></td>
+          <td><span class="count-num" data-target="{{ results.logistic_regression.recall }}" data-decimals="3">{{ "%.3f"|format(results.logistic_regression.recall) }}</span></td>
+          <td><span class="count-num" data-target="{{ results.logistic_regression.f1 }}" data-decimals="3">{{ "%.3f"|format(results.logistic_regression.f1) }}</span></td>
+          <td><span class="count-num" data-target="{{ results.logistic_regression.auc }}" data-decimals="3">{{ "%.3f"|format(results.logistic_regression.auc) }}</span></td>
+          <td><span class="count-num" data-target="{{ results.logistic_regression.train_time_sec }}" data-decimals="3" data-suffix="s">{{ "%.3f"|format(results.logistic_regression.train_time_sec) }}s</span></td>
+        </tr>
+        <tr>
+          <td>Random Forest <span class="muted">(30 features, 200 trees)</span></td>
+          <td><span class="count-num" data-target="{{ results.random_forest.accuracy * 100 }}" data-decimals="1" data-suffix="%">{{ "%.1f"|format(results.random_forest.accuracy*100) }}%</span></td>
+          <td><span class="count-num" data-target="{{ results.random_forest.precision }}" data-decimals="3">{{ "%.3f"|format(results.random_forest.precision) }}</span></td>
+          <td><span class="count-num" data-target="{{ results.random_forest.recall }}" data-decimals="3">{{ "%.3f"|format(results.random_forest.recall) }}</span></td>
+          <td><span class="count-num" data-target="{{ results.random_forest.f1 }}" data-decimals="3">{{ "%.3f"|format(results.random_forest.f1) }}</span></td>
+          <td><span class="count-num" data-target="{{ results.random_forest.auc }}" data-decimals="3">{{ "%.3f"|format(results.random_forest.auc) }}</span></td>
+          <td><span class="count-num" data-target="{{ results.random_forest.train_time_sec }}" data-decimals="3" data-suffix="s">{{ "%.3f"|format(results.random_forest.train_time_sec) }}s</span></td>
+        </tr>
+        <tr>
+          <td>Logistic Regression <span class="muted">(same 4 PCA features)</span></td>
+          <td><span class="count-num" data-target="{{ results.logistic_regression_same_4_features.accuracy * 100 }}" data-decimals="1" data-suffix="%">{{ "%.1f"|format(results.logistic_regression_same_4_features.accuracy*100) }}%</span></td>
+          <td><span class="count-num" data-target="{{ results.logistic_regression_same_4_features.precision }}" data-decimals="3">{{ "%.3f"|format(results.logistic_regression_same_4_features.precision) }}</span></td>
+          <td><span class="count-num" data-target="{{ results.logistic_regression_same_4_features.recall }}" data-decimals="3">{{ "%.3f"|format(results.logistic_regression_same_4_features.recall) }}</span></td>
+          <td><span class="count-num" data-target="{{ results.logistic_regression_same_4_features.f1 }}" data-decimals="3">{{ "%.3f"|format(results.logistic_regression_same_4_features.f1) }}</span></td>
+          <td><span class="count-num" data-target="{{ results.logistic_regression_same_4_features.auc }}" data-decimals="3">{{ "%.3f"|format(results.logistic_regression_same_4_features.auc) }}</span></td>
+          <td><span class="count-num" data-target="{{ results.logistic_regression_same_4_features.train_time_sec }}" data-decimals="3" data-suffix="s">{{ "%.3f"|format(results.logistic_regression_same_4_features.train_time_sec) }}s</span></td>
+        </tr>
+        <tr class="highlight">
+          <td>Hybrid VQC <span class="muted">({{ results.hybrid_vqc.n_qubits }} qubits, {{ results.hybrid_vqc.n_params }} params · {{ results.quantum_backend_display or results.hybrid_vqc.backend }})</span></td>
+          <td><span class="count-num" data-target="{{ results.hybrid_vqc.accuracy * 100 }}" data-decimals="1" data-suffix="%">{{ "%.1f"|format(results.hybrid_vqc.accuracy*100) }}%</span></td>
+          <td><span class="count-num" data-target="{{ results.hybrid_vqc.precision }}" data-decimals="3">{{ "%.3f"|format(results.hybrid_vqc.precision) }}</span></td>
+          <td><span class="count-num" data-target="{{ results.hybrid_vqc.recall }}" data-decimals="3">{{ "%.3f"|format(results.hybrid_vqc.recall) }}</span></td>
+          <td><span class="count-num" data-target="{{ results.hybrid_vqc.f1 }}" data-decimals="3">{{ "%.3f"|format(results.hybrid_vqc.f1) }}</span></td>
+          <td><span class="count-num" data-target="{{ results.hybrid_vqc.auc }}" data-decimals="3">{{ "%.3f"|format(results.hybrid_vqc.auc) }}</span></td>
+          <td><span class="count-num" data-target="{{ results.hybrid_vqc.train_time_sec }}" data-decimals="3" data-suffix="s">{{ "%.3f"|format(results.hybrid_vqc.train_time_sec) }}s</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="caption">
+    <strong>Scientific Interpretation:</strong> The quantum model is rigorously benchmarked against classical baselines on identical feature representations.
+    The primary purpose of this prototype is establishing the end-to-end quantum-classical pipeline (angle encoding, parameterized ansatz, parameter-shift optimization, and XAI explainability)
+    which directly scales to multi-qubit physical QPU execution.
+  </p>
+</section>
+
+<div class="grid-2">
+  <section class="card">
+    <h2>📈 Training Loss Convergence</h2>
+    <img src="{{ url_for('static', filename='loss.png') }}?v={{ v }}" class="chart-img" alt="Loss curve">
+  </section>
+  <section class="card">
+    <h2>🎯 ROC-AUC Analysis</h2>
+    <img src="{{ url_for('static', filename='roc.png') }}?v={{ v }}" class="chart-img" alt="ROC curve">
+  </section>
+</div>
+
+<!-- Explainability & Model Interpretability Section -->
+<section class="card wide" style="margin-top: 24px; border: 1px solid var(--border-glass);">
+  <div class="eyebrow" style="margin-bottom: 4px;">
+    <span>●</span>
+    <span>Multi-Method Model Interpretability & Feature Attribution</span>
+  </div>
+  <h2 style="margin-bottom: 8px;">🔬 Dual Explainability Framework (Permutation XAI vs SHAP)</h2>
+  <p class="lede" style="font-size: 13.5px; margin-bottom: 20px;">
+    Permutation feature importance operates model-agnostically across both the quantum circuit and classical baselines, 
+    while SHAP provides rigorous game-theoretic Shapley attributions for the classical model.
+  </p>
+
+  <div class="grid-3">
+    <div class="card" style="padding: 16px; background: rgba(0, 229, 255, 0.03); border: 1px solid var(--border-cyan);">
+      <h3 style="font-size: 14px; color: var(--primary-cyan); margin-bottom: 10px;">
+        ⚛ Hybrid VQC (Permutation ΔAUC)
+      </h3>
+      <img src="{{ url_for('static', filename='importance_quantum.png') }}?v={{ v }}" class="chart-img" alt="Quantum feature importance">
+      <p style="font-size: 11.5px; color: var(--text-dim); margin-top: 8px;">
+        Measures global drop in test ROC-AUC when quantum angle-encoded PCA features are shuffled.
+      </p>
+    </div>
+
+    <div class="card" style="padding: 16px; background: rgba(139, 92, 246, 0.03); border: 1px solid var(--border-violet);">
+      <h3 style="font-size: 14px; color: #C4B5FD; margin-bottom: 10px;">
+        📊 Classical Baseline (Permutation ΔAUC)
+      </h3>
+      <img src="{{ url_for('static', filename='importance_classical.png') }}?v={{ v }}" class="chart-img" alt="Classical feature importance">
+      <p style="font-size: 11.5px; color: var(--text-dim); margin-top: 8px;">
+        Same permutation perturbation applied to the 4-feature classical logistic regression baseline.
+      </p>
+    </div>
+
+    <div class="card" style="padding: 16px; background: rgba(0, 245, 212, 0.03); border: 1px solid var(--border-teal);">
+      <h3 style="font-size: 14px; color: var(--quantum-teal); margin-bottom: 10px;">
+        🌟 Classical Baseline (SHAP Values)
+      </h3>
+      <img src="{{ url_for('static', filename='importance_shap.png') }}?v={{ v }}" class="chart-img" alt="Classical SHAP importance" onerror="this.src='{{ url_for('static', filename='importance_classical.png') }}?v={{ v }}'">
+      <p style="font-size: 11.5px; color: var(--text-dim); margin-top: 8px;">
+        Mean absolute Shapley values ($\mathbb{E}[|\phi_i|]$) capturing game-theoretic marginal log-odds impact.
+      </p>
+    </div>
+  </div>
+
+  <div style="margin-top: 18px; padding: 14px 18px; background: rgba(255, 255, 255, 0.02); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 12.5px; color: var(--text-dim); line-height: 1.6;">
+    <strong style="color: var(--text-pure);">Scientific Distinction between Methods:</strong>
+    <ul style="margin: 6px 0 0 16px; padding: 0;">
+      <li><strong>Permutation Feature Importance (Global Sensitivity):</strong> Measures the drop in classification performance ($\Delta\text{AUC}$) when a feature is corrupted across the test distribution. Model-agnostic and universally valid for both classical algorithms and quantum statevector circuits.</li>
+      <li><strong>SHAP (Shapley Additive exPlanations):</strong> Computes additive feature attributions based on cooperative game theory. Quantifies each feature's contribution towards shifting the model prediction from the base expected value to the final log-odds.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- Recent Diagnostic Activity Widget -->
+<section class="card wide" style="margin-bottom: 32px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <div>
+      <div class="eyebrow" style="margin-bottom: 4px;">
+        <span>●</span>
+        <span>Practitioner Session Log</span>
+      </div>
+      <h2 style="margin: 0;">Recent Diagnostic Activity</h2>
+    </div>
+    <a href="{{ url_for('history_page') }}" class="pill" style="text-decoration: none; border-color: var(--border-cyan); color: var(--primary-cyan);">
+      View Full History →
+    </a>
+  </div>
+
+  {% if recent_predictions %}
+  <div style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border-glass); color: var(--text-dim); font-size: 12px; text-transform: uppercase;">
+          <th style="padding: 10px 14px;">ID</th>
+          <th style="padding: 10px 14px;">Timestamp (UTC)</th>
+          <th style="padding: 10px 14px;">Model</th>
+          <th style="padding: 10px 14px;">Prediction</th>
+          <th style="padding: 10px 14px;">Confidence</th>
+          <th style="padding: 10px 14px;">Ground Truth</th>
+          <th style="padding: 10px 14px; text-align: right;">Report</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pred in recent_predictions %}
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+          <td style="padding: 10px 14px; font-family: 'JetBrains Mono', monospace; color: var(--text-dim);">#{{ pred.id }}</td>
+          <td style="padding: 10px 14px; color: var(--text-dim); font-size: 12.5px;">{{ pred.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td style="padding: 10px 14px;">
+            {% if pred.model_used == 'both' %}
+              <span class="pill" style="padding: 2px 7px; font-size: 11px; background: rgba(0, 229, 255, 0.08); color: var(--primary-cyan); border-color: var(--border-cyan);">Dual (Q+C)</span>
+            {% else %}
+              <span class="pill" style="padding: 2px 7px; font-size: 11px;">{{ pred.model_used }}</span>
+            {% endif %}
+          </td>
+          <td style="padding: 10px 14px;">
+            {% if pred.prediction_result == 'Malignant' %}
+              <span class="badge badge-malignant" style="font-size: 11.5px; padding: 2px 7px;">Malignant</span>
+            {% else %}
+              <span class="badge badge-benign" style="font-size: 11.5px; padding: 2px 7px;">Benign</span>
+            {% endif %}
+          </td>
+          <td style="padding: 10px 14px; font-family: 'JetBrains Mono', monospace; font-size: 13px;">
+            {{ "%.1f"|format(pred.confidence * 100) }}%
+          </td>
+          <td style="padding: 10px 14px; font-size: 12.5px;">
+            {% if pred.true_label %}
+              {% if pred.is_correct %}
+                <span style="color: #34D399; font-weight: 600;">✓ {{ pred.true_label }}</span>
+              {% else %}
+                <span style="color: #F87171; font-weight: 600;">✗ {{ pred.true_label }}</span>
+              {% endif %}
+            {% else %}
+              <span style="color: var(--text-dim);">—</span>
+            {% endif %}
+          </td>
+          <td style="padding: 10px 14px; text-align: right;">
+            <a href="{{ url_for('history_detail', pred_id=pred.id) }}" class="pill" style="text-decoration: none; padding: 3px 8px; font-size: 11.5px; border-color: var(--border-cyan); color: var(--primary-cyan);">
+              Breakdown →
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="padding: 20px; text-align: center; color: var(--text-dim); font-size: 13.5px;">
+    No recent diagnostic inferences recorded.
+    <a href="{{ url_for('predict_page') }}" style="color: var(--primary-cyan); margin-left: 6px;">Test a patient sample →</a>
+  </div>
+  {% endif %}
+</section>
+
+<div class="cta-row">
+  <a href="{{ url_for('predict_page') }}" class="btn-primary">
+    <span>🔬</span> Launch Interactive Patient Diagnostics Console →
+  </a>
+</div>
+
+<script>
+// Animate metric numbers counting up on load
+document.addEventListener('DOMContentLoaded', () => {
+  const counters = document.querySelectorAll('.count-num');
+  const duration = 1200; // ms
+  const startTime = performance.now();
+
+  counters.forEach(counter => {
+    const target = parseFloat(counter.getAttribute('data-target'));
+    if (isNaN(target)) return;
+    const decimals = parseInt(counter.getAttribute('data-decimals') || '1', 10);
+    const suffix = counter.getAttribute('data-suffix') || '';
+
+    function updateCount(now) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      const currentVal = target * easeProgress;
+
+      counter.innerText = currentVal.toFixed(decimals) + suffix;
+
+      if (progress < 1) {
+        requestAnimationFrame(updateCount);
+      } else {
+        counter.innerText = target.toFixed(decimals) + suffix;
+      }
+    }
+
+    requestAnimationFrame(updateCount);
+  });
+});
+</script>
+
+{% endblock %}

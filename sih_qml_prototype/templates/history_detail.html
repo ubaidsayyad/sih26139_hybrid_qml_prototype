@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Diagnostic Record #{{ pred.id }} · SIH26139{% endblock %}
+
+{% block content %}
+<section class="dash-header">
+  <div class="eyebrow">
+    <span>●</span>
+    <span>Clinical Inference Audit Report</span>
+  </div>
+  <h1>Diagnostic Breakdown #{{ pred.id }}</h1>
+  <p class="lede">
+    Recorded on {{ pred.created_at.strftime('%B %d, %Y at %H:%M:%S UTC') }} by {{ pred.user.name if pred.user else 'Unknown Practitioner' }}.
+  </p>
+</section>
+
+<!-- Top Overview Banner -->
+<div class="card" style="background: rgba(18, 28, 51, 0.9); border-left: 4px solid var(--primary-cyan); margin-bottom: 24px; padding: 20px 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+    <div>
+      <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Diagnosis Determination:</span>
+      <div style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; margin-top: 4px; display: flex; align-items: center; gap: 12px;">
+        {% if pred.prediction_result == 'Malignant' %}
+          <span style="color: #F87171;">Malignant (Disease-Positive)</span>
+          <span class="badge badge-malignant">Critical</span>
+        {% else %}
+          <span style="color: #34D399;">Benign (Disease-Negative)</span>
+          <span class="badge badge-benign">Normal</span>
+        {% endif %}
+      </div>
+    </div>
+    
+    <div style="text-align: right;">
+      <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Confidence Level:</span>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; color: var(--text-pure); margin-top: 4px;">
+        {{ "%.1f"|format(pred.confidence * 100) }}%
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Dual Model Comparison Cards -->
+<div class="grid-2" style="margin-bottom: 24px;">
+  <!-- Quantum Branch Card -->
+  <div class="card" style="border: 1px solid var(--border-glass); background: linear-gradient(180deg, rgba(0, 245, 212, 0.06) 0%, rgba(13, 22, 40, 0.9) 100%);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+      <h3 style="color: var(--quantum-teal); margin: 0;">⚛ Hybrid VQC (4 Qubits)</h3>
+      <span class="pill" style="background: rgba(0, 245, 212, 0.1); color: var(--quantum-teal); border-color: var(--border-teal);">Quantum Branch</span>
+    </div>
+
+    <div class="result-row">
+      <span class="result-label">Predicted Diagnosis:</span>
+      <span class="result-value" style="font-weight: 700; color: var(--quantum-teal);">
+        {{ pred.metadata_dict.get('quantum_prediction', pred.prediction_result) }}
+      </span>
+    </div>
+
+    <div class="result-row">
+      <span class="result-label">Statevector Probability:</span>
+      <span class="result-value mono" style="color: var(--text-pure);">
+        {{ pred.metadata_dict.get('quantum_prob', pred.confidence) }}
+      </span>
+    </div>
+
+    <div class="confidence-bar-container" style="margin: 12px 0;">
+      <div class="confidence-bar-fill" style="width: {{ (pred.metadata_dict.get('quantum_conf', pred.confidence) * 100)|round(1) }}%; background: linear-gradient(90deg, var(--accent-violet), var(--quantum-teal));"></div>
+    </div>
+
+    <div class="result-row">
+      <span class="result-label">Evaluated Architecture:</span>
+      <span class="result-value" style="font-size: 12.5px; color: var(--text-dim);">4 Qubits · 2 Layers · RY-RZ-CX</span>
+    </div>
+  </div>
+
+  <!-- Classical Fair Baseline Card -->
+  <div class="card" style="border: 1px solid var(--border-violet); background: linear-gradient(180deg, rgba(139, 92, 246, 0.06) 0%, rgba(13, 22, 40, 0.9) 100%);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+      <h3 style="color: #C4B5FD; margin: 0;">📊 Classical Fair Baseline</h3>
+      <span class="pill" style="background: rgba(139, 92, 246, 0.1); color: #C4B5FD; border-color: var(--border-violet);">Classical Branch</span>
+    </div>
+
+    <div class="result-row">
+      <span class="result-label">Predicted Diagnosis:</span>
+      <span class="result-value" style="font-weight: 700; color: #C4B5FD;">
+        {{ pred.metadata_dict.get('classical_prediction', '—') }}
+      </span>
+    </div>
+
+    <div class="result-row">
+      <span class="result-label">Logistic Regression Probability:</span>
+      <span class="result-value mono" style="color: var(--text-pure);">
+        {{ pred.metadata_dict.get('classical_prob', '—') }}
+      </span>
+    </div>
+
+    <div class="confidence-bar-container" style="margin: 12px 0;">
+      <div class="confidence-bar-fill" style="width: {{ (pred.metadata_dict.get('classical_conf', 0.5) * 100)|round(1) }}%; background: linear-gradient(90deg, #6366F1, #C4B5FD);"></div>
+    </div>
+
+    <div class="result-row">
+      <span class="result-label">Evaluated Features:</span>
+      <span class="result-value" style="font-size: 12.5px; color: var(--text-dim);">Same 4 PCA Dimensions (Apples-to-Apples)</span>
+    </div>
+  </div>
+</div>
+
+<!-- Input Biomedical Feature Breakdown -->
+<section class="card wide" style="margin-bottom: 32px;">
+  <div class="eyebrow" style="margin-bottom: 6px;">
+    <span>●</span>
+    <span>Ingested Biomedical Feature Vector</span>
+  </div>
+  <h2 style="margin-bottom: 16px;">Biomarker Feature Telemetry</h2>
+
+  {% if pred.features_dict %}
+  <div style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border-glass); color: var(--text-dim); font-size: 11.5px; text-transform: uppercase;">
+          <th style="padding: 10px 14px;">Feature Name</th>
+          <th style="padding: 10px 14px;">Type / Domain</th>
+          <th style="padding: 10px 14px; text-align: right;">Ingested Numeric Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for feat, val in pred.features_dict.items() %}
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+          <td style="padding: 10px 14px; font-weight: 500; color: var(--text-pure);">{{ feat }}</td>
+          <td style="padding: 10px 14px; color: var(--text-dim); font-size: 12px;">
+            {% if 'pc' in feat.lower() %}Quantum Latent Dimension{% else %}Standardized Clinical Feature{% endif %}
+          </td>
+          <td style="padding: 10px 14px; text-align: right; font-family: 'JetBrains Mono', monospace; color: var(--primary-cyan);">
+            {{ val }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">No raw feature vector recorded for this entry.</p>
+  {% endif %}
+
+  <div style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+    <a href="{{ url_for('download_prediction_pdf', pred_id=pred.id) }}" class="btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #0284C7, #4F46E5);">
+      <span>📄</span> Download Report (PDF)
+    </a>
+    <a href="{{ url_for('history_page') }}" class="btn-secondary" style="text-decoration: none;">
+      ← Return to History Log
+    </a>
+    <a href="{{ url_for('predict_page') }}" class="pill" style="text-decoration: none; border-color: var(--border-cyan); color: var(--primary-cyan); display: inline-flex; align-items: center; gap: 6px;">
+      <span>🔬</span> New Diagnostic Inference
+    </a>
+  </div>
+</section>
+{% endblock %}

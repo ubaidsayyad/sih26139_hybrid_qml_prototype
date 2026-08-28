@@ -1,0 +1,117 @@
+{
+  "logistic_regression": {
+    "accuracy": 0.965034965034965,
+    "precision": 0.98,
+    "recall": 0.9245283018867925,
+    "f1": 0.9514563106796117,
+    "auc": 0.9962264150943396,
+    "train_time_sec": 0.010992765426635742
+  },
+  "random_forest": {
+    "accuracy": 0.958041958041958,
+    "precision": 1.0,
+    "recall": 0.8867924528301887,
+    "f1": 0.94,
+    "auc": 0.9943396226415094,
+    "train_time_sec": 0.798151969909668
+  },
+  "logistic_regression_same_4_features": {
+    "accuracy": 0.951048951048951,
+    "precision": 1.0,
+    "recall": 0.8679245283018868,
+    "f1": 0.9292929292929293,
+    "auc": 0.9983228511530398,
+    "train_time_sec": 0.006016731262207031
+  },
+  "hybrid_vqc": {
+    "accuracy": 0.8531468531468531,
+    "precision": 0.75,
+    "recall": 0.9056603773584906,
+    "f1": 0.8205128205128205,
+    "auc": 0.9375262054507338,
+    "train_time_sec": 14.840380668640137,
+    "n_params": 16,
+    "n_qubits": 4,
+    "loss_history": [
+      0.6461718293310775,
+      0.6180220823442727,
+      0.5914221195043424,
+      0.5671631585569474,
+      0.5457176127190159
+    ]
+  },
+  "quantum_explainability": {
+    "baseline_auc": 0.9375262054507338,
+    "importances": [
+      {
+        "feature": "PC1",
+        "importance": 0.4128668763102727,
+        "std": 0.05023698365642062
+      },
+      {
+        "feature": "PC3",
+        "importance": 0.014675052410901501,
+        "std": 0.006817447606502779
+      },
+      {
+        "feature": "PC2",
+        "importance": 0.01029874213836486,
+        "std": 0.01385926491438326
+      },
+      {
+        "feature": "PC4",
+        "importance": -0.00911949685534584,
+        "std": 0.008601138333086358
+      }
+    ]
+  },
+  "classical_explainability": {
+    "baseline_auc": 0.9983228511530398,
+    "importances": [
+      {
+        "feature": "PC1",
+        "importance": 0.44344863731656176,
+        "std": 0.051404247718449134
+      },
+      {
+        "feature": "PC2",
+        "importance": 0.018632075471698012,
+        "std": 0.00595590575443067
+      },
+      {
+        "feature": "PC3",
+        "importance": 0.006970649895178094,
+        "std": 0.0034840439946793107
+      },
+      {
+        "feature": "PC4",
+        "importance": 0.004088050314465325,
+        "std": 0.00181556688424408
+      }
+    ]
+  },
+  "classical_shap_explainability": {
+    "importances": [
+      {
+        "feature": "PC1",
+        "importance": 1.9261031348654882,
+        "std": 1.3380577152962403
+      },
+      {
+        "feature": "PC2",
+        "importance": 0.46504436277346156,
+        "std": 0.4157674766045199
+      },
+      {
+        "feature": "PC4",
+        "importance": 0.3190103921145505,
+        "std": 0.24159715541370388
+      },
+      {
+        "feature": "PC3",
+        "importance": 0.2829390449031889,
+        "std": 0.22534017325538752
+      }
+    ]
+  }
+}

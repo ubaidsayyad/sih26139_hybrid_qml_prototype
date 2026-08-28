@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+{% block title %}Patient Batch Upload{% endblock %}
+{% block content %}
+
+<section class="upload-header">
+  <div class="eyebrow">
+    <span>●</span>
+    <span>Batch Patient Ingestion · Zero-Persistence RAM Runtime</span>
+  </div>
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h1>Patient Batch Diagnostics</h1>
+      <p class="lede">
+        Upload multi-patient diagnostic profiles for simultaneous screening by the trained 
+        <strong>Hybrid Quantum VQC</strong> and <strong>Classical Fair Baseline</strong>.
+        All records are parsed and evaluated strictly in-memory and discarded immediately after inference.
+      </p>
+    </div>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <a href="{{ url_for('download_sample_csv') }}" class="btn-secondary" style="font-size: 13px; padding: 10px 16px;">
+        <span>📥</span> Download Sample CSV
+      </a>
+      <button type="button" onclick="loadSampleBatchDirectly()" class="btn-secondary" style="font-size: 13px; padding: 10px 16px; border-color: var(--primary-cyan); color: var(--primary-cyan);">
+        <span>⚡</span> Quick Run Sample Batch
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- Upload Control Card -->
+<section class="card wide" style="margin-bottom: 24px; border: 1px solid var(--border-glass);">
+  <form id="upload-form" action="{{ url_for('upload_api') }}" method="post" enctype="multipart/form-data" onsubmit="handleBatchSubmit(event)">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      
+      <!-- Dropzone / File Picker -->
+      <div id="drop-zone" class="drop-zone" onclick="document.getElementById('file-input').click()">
+        <input type="file" id="file-input" name="file" accept=".csv" style="display: none;" onchange="handleFileSelected(this.files[0])">
+        <div style="font-size: 36px; margin-bottom: 8px;">📄</div>
+        <div style="font-family: var(--font-heading); font-size: 16px; font-weight: 700; color: var(--text-pure); margin-bottom: 4px;">
+          <span id="dropzone-text">Click to choose or drag & drop a Patient CSV file</span>
+        </div>
+        <p style="font-size: 12.5px; color: var(--text-dim); margin: 0;">
+          Must contain 30 standard cellular morphological features (e.g. mean radius, texture, perimeter, area...)
+        </p>
+        <div id="selected-file-badge" style="display: none; margin-top: 12px;" class="pill">
+          <span id="selected-filename"></span>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="font-size: 12px; color: var(--text-dim);">
+          🔒 <strong>Privacy Assurance:</strong> Zero disk write. Patient tensors reside only in volatile RAM during inference.
+        </div>
+        <button type="submit" id="submit-btn" class="btn-primary" style="padding: 12px 28px;">
+          <span>🚀</span> Run Dual-Model Batch Screening
+        </button>
+      </div>
+
+    </div>
+  </form>
+</section>
+
+<!-- Live Processing / Results Area -->
+<div id="results-container" style="{% if not results %}display: none;{% endif %}">
+
+  {% if results %}
+  <!-- Batch Summary Metrics -->
+  <div class="grid-3" style="margin-bottom: 24px;">
+    
+    <div class="card" style="border-left: 3px solid var(--primary-cyan);">
+      <h3>Total Records Screened</h3>
+      <div style="font-size: 32px; font-family: var(--font-heading); font-weight: 800; color: var(--primary-cyan); margin: 6px 0;">
+        {{ results.summary.total_samples }} Patients
+      </div>
+      <p>Screened on {{ results.summary.quantum_backend }}</p>
+    </div>
+
+    <div class="card" style="border-left: 3px solid var(--accent-violet);">
+      <h3>Model Agreement Rate</h3>
+      <div style="font-size: 32px; font-family: var(--font-heading); font-weight: 800; color: #C4B5FD; margin: 6px 0;">
+        {{ results.summary.agreement_rate }}%
+      </div>
+      <p>{{ results.summary.agreement_count }} of {{ results.summary.total_samples }} concordant diagnoses</p>
+    </div>
+
+    <div class="card" style="border-left: 3px solid var(--quantum-teal);">
+      <h3>Predicted Malignant / Benign</h3>
+      <div style="font-size: 26px; font-family: var(--font-heading); font-weight: 800; color: var(--quantum-teal); margin: 6px 0;">
+        Quantum: {{ results.summary.quantum_malignant_count }} M / {{ results.summary.total_samples - results.summary.quantum_malignant_count }} B
+      </div>
+      <p>Classical: {{ results.summary.classical_malignant_count }} M / {{ results.summary.total_samples - results.summary.classical_malignant_count }} B</p>
+    </div>
+
+  </div>
+
+  {% if results.summary.has_ground_truth %}
+  <div class="card wide" style="margin-bottom: 24px; background: rgba(0, 229, 255, 0.04); border: 1px solid var(--border-cyan);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <h4 style="margin: 0 0 4px; color: var(--primary-cyan); font-family: var(--font-heading);">
+          🔬 Ground Truth Pathology Validation
+        </h4>
+        <p style="margin: 0; font-size: 13px; color: var(--text-dim);">
+          Uploaded CSV included verified clinical diagnoses. Batch classification accuracy:
+        </p>
+      </div>
+      <div style="display: flex; gap: 24px;">
+        <div>
+          <span style="font-size: 12px; color: var(--text-dim);">Quantum VQC Accuracy</span>
+          <div style="font-size: 22px; font-weight: 700; color: var(--quantum-teal);">
+            {{ results.summary.quantum_batch_accuracy }}%
+          </div>
+        </div>
+        <div>
+          <span style="font-size: 12px; color: var(--text-dim);">Classical Fair Accuracy</span>
+          <div style="font-size: 22px; font-weight: 700; color: #C4B5FD;">
+            {{ results.summary.classical_batch_accuracy }}%
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Results Table -->
+  <section class="card wide">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h2>📋 Patient Diagnostic Predictions</h2>
+      <span class="pill" style="font-size: 12px;">
+        {{ results.rows|length }} Records Evaluated
+      </span>
+    </div>
+
+    <div class="metrics-table-wrapper">
+      <table class="metrics-table">
+        <thead>
+          <tr>
+            <th>Patient ID</th>
+            <th>Quantum VQC</th>
+            <th>Quantum Conf.</th>
+            <th>Classical Baseline</th>
+            <th>Classical Conf.</th>
+            <th>Agreement</th>
+            {% if results.summary.has_ground_truth %}
+            <th>Ground Truth</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in results.rows %}
+          <tr>
+            <td style="font-family: var(--font-mono); font-weight: 600; color: var(--text-pure);">
+              {{ row.patient_id }}
+            </td>
+            
+            <!-- Quantum Prediction -->
+            <td>
+              {% if row.quantum_prediction == 'Malignant' %}
+              <span class="pred-badge malignant">⚡ Malignant</span>
+              {% else %}
+              <span class="pred-badge benign">● Benign</span>
+              {% endif %}
+            </td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="mini-progress-bg">
+                  <div class="mini-progress-fill {% if row.quantum_prediction == 'Malignant' %}fill-mal{% else %}fill-ben{% endif %}" style="width: {{ row.quantum_conf * 100 }}%;"></div>
+                </div>
+                <span class="mono-num">{{ "%.1f"|format(row.quantum_conf * 100) }}%</span>
+              </div>
+            </td>
+
+            <!-- Classical Prediction -->
+            <td>
+              {% if row.classical_prediction == 'Malignant' %}
+              <span class="pred-badge malignant">⚡ Malignant</span>
+              {% else %}
+              <span class="pred-badge benign">● Benign</span>
+              {% endif %}
+            </td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="mini-progress-bg">
+                  <div class="mini-progress-fill {% if row.classical_prediction == 'Malignant' %}fill-mal{% else %}fill-ben{% endif %}" style="width: {{ row.classical_conf * 100 }}%;"></div>
+                </div>
+                <span class="mono-num">{{ "%.1f"|format(row.classical_conf * 100) }}%</span>
+              </div>
+            </td>
+
+            <!-- Agreement -->
+            <td>
+              {% if row.agreement %}
+              <span style="color: var(--quantum-teal); font-weight: 600; font-size: 13px;">✓ Concordant</span>
+              {% else %}
+              <span style="color: #F87171; font-weight: 600; font-size: 13px;">⚠ Divergent</span>
+              {% endif %}
+            </td>
+
+            <!-- Ground Truth (if provided) -->
+            {% if results.summary.has_ground_truth %}
+            <td>
+              {% if row.ground_truth %}
+                <span style="font-weight: 600; color: {% if row.ground_truth == 'Malignant' %}#F87171{% else %}var(--quantum-teal){% endif %};">
+                  {{ row.ground_truth }}
+                </span>
+                {% if row.quantum_correct is not none %}
+                  <span style="font-size: 11px; color: {% if row.quantum_correct %}var(--quantum-teal){% else %}#F87171{% endif %}; margin-left: 4px;">
+                    ({% if row.quantum_correct %}Q:✓{% else %}Q:✗{% endif %})
+                  </span>
+                {% endif %}
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </td>
+            {% endif %}
+
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+</div>
+
+<script>
+// Drag and Drop styling
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+if (dropZone) {
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      dropZone.classList.add('drag-active');
+    }, false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-active');
+    }, false);
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files.length) {
+      fileInput.files = files;
+      handleFileSelected(files[0]);
+    }
+  });
+}
+
+function handleFileSelected(file) {
+  if (!file) return;
+  const badge = document.getElementById('selected-file-badge');
+  const filename = document.getElementById('selected-filename');
+  const text = document.getElementById('dropzone-text');
+  
+  if (badge && filename && text) {
+    filename.innerText = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+    badge.style.display = 'inline-flex';
+    text.innerText = 'Selected file ready for screening:';
+  }
+}
+
+async function loadSampleBatchDirectly() {
+  const submitBtn = document.getElementById('submit-btn');
+  if (submitBtn) {
+    submitBtn.innerHTML = '<span style="animation: spin 1s infinite linear; display:inline-block;">⚙</span> Generating Sample & Screening…';
+    submitBtn.disabled = true;
+  }
+
+  try {
+    const resp = await fetch('{{ url_for("download_sample_csv") }}');
+    if (!resp.ok) throw new Error('Failed to fetch sample CSV');
+    const csvBlob = await resp.blob();
+    
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const formData = new FormData();
+    formData.append('file', csvBlob, 'sample_patients_test_batch.csv');
+    formData.append('csrf_token', csrfToken);
+
+    const uploadResp = await fetch('{{ url_for("upload_api") }}', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': csrfToken
+      }
+    });
+
+    const data = await uploadResp.json();
+    if (!uploadResp.ok || data.error) {
+      if (window.showToast) window.showToast(data.error || 'Batch screening failed', 'error');
+      return;
+    }
+
+    if (window.showToast) window.showToast(`Successfully screened ${data.results.summary.total_samples} sample records!`, 'success');
+    // Reload with rendered results
+    window.location.reload();
+  } catch (err) {
+    if (window.showToast) window.showToast(err.message, 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.innerHTML = '<span>🚀</span> Run Dual-Model Batch Screening';
+      submitBtn.disabled = false;
+    }
+  }
+}
+
+function handleBatchSubmit(event) {
+  const submitBtn = document.getElementById('submit-btn');
+  if (submitBtn) {
+    submitBtn.innerHTML = '<span style="animation: spin 1s infinite linear; display:inline-block;">⚙</span> Screening In-Memory…';
+    submitBtn.style.opacity = '0.85';
+  }
+}
+</script>
+
+{% endblock %}

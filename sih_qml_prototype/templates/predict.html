@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% block title %}Quantum Diagnostics{% endblock %}
+{% block content %}
+
+<section class="dash-header">
+  <div class="eyebrow">
+    <span>●</span>
+    <span>Interactive Dual-Model Diagnostic Inference</span>
+  </div>
+  <h1>Clinical Diagnostic Terminal</h1>
+  <p class="lede">
+    Select a held-out test patient (indices 0 to {{ n_test - 1 }}) and evaluate real-time quantum statevector classification side-by-side with the classical fair benchmark.
+  </p>
+</section>
+
+<section class="card wide predict-card">
+  <h2>⚡ Patient Selection & Inference Controls</h2>
+  
+  <!-- Quick Patient Preset Chips -->
+  <div class="patient-chips-wrap" style="margin: 14px 0 18px;">
+    <span style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-right: 8px;">Quick Presets:</span>
+    <button type="button" class="patient-chip" onclick="setAndPredict(0)">Patient #0 (Malignant)</button>
+    <button type="button" class="patient-chip" onclick="setAndPredict(3)">Patient #3 (Malignant)</button>
+    <button type="button" class="patient-chip" onclick="setAndPredict(12)">Patient #12 (Benign)</button>
+    <button type="button" class="patient-chip" onclick="setAndPredict(42)">Patient #42 (Benign)</button>
+    <button type="button" class="patient-chip highlight" onclick="randomPredict()">🎲 Random Sample</button>
+  </div>
+
+  <div class="predict-controls">
+    <label for="idx">Test Patient Index (0–{{ n_test - 1 }}):</label>
+    <input type="number" id="idx" min="0" max="{{ n_test - 1 }}" value="0">
+    <button class="btn-primary" id="btn-predict" onclick="runPredict()">
+      <span>🔬</span> Run Dual Inference
+    </button>
+  </div>
+
+  <div id="result" class="predict-result" style="display:none;">
+    
+    <!-- Ground Truth Pathology Banner -->
+    <div class="card" style="background: rgba(18, 28, 51, 0.9); border-left: 3px solid var(--primary-cyan); margin-bottom: 20px; padding: 16px 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div>
+          <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Confirmed Ground Truth Pathology:</span>
+          <div id="r-true" style="font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: var(--text-pure); margin-top: 4px;"></div>
+        </div>
+        <div id="patient-id-badge" class="pill">Sample Index #0</div>
+      </div>
+    </div>
+
+    <!-- Dual Side-by-Side Model Inference Comparison -->
+    <div class="grid-2" style="margin: 0 0 16px;">
+      
+      <!-- Quantum VQC Card -->
+      <div class="card" style="border: 1px solid var(--border-glass); background: linear-gradient(180deg, rgba(0, 245, 212, 0.06) 0%, rgba(13, 22, 40, 0.9) 100%);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h3 style="color: var(--quantum-teal); margin: 0;">⚛ Hybrid VQC (4 Qubits)</h3>
+          <span class="muted" style="font-family: var(--font-mono); font-size: 11px;">Angle Encoded</span>
+        </div>
+        
+        <div class="result-row">
+          <span class="result-label">Predicted Diagnosis:</span>
+          <span id="q-pred" class="result-value" style="font-size: 17px; font-weight: 800; color: var(--quantum-teal);"></span>
+        </div>
+
+        <div class="result-row">
+          <span class="result-label">Classification Confidence:</span>
+          <span id="q-conf" class="result-value mono" style="font-size: 16px; color: var(--text-pure);"></span>
+        </div>
+
+        <!-- Animated Quantum Confidence Bar -->
+        <div class="confidence-bar-container">
+          <div id="q-bar" class="confidence-bar-fill" style="width: 0%; background: linear-gradient(90deg, var(--accent-violet), var(--quantum-teal));"></div>
+        </div>
+
+        <div class="result-row">
+          <span class="result-label">Pauli-Z Expectation ⟨Z⟩:</span>
+          <span id="q-score" class="result-value mono"></span>
+        </div>
+
+        <div id="q-badge" class="badge" style="width: 100%; justify-content: center; margin-top: 14px;"></div>
+      </div>
+
+      <!-- Classical Fair Baseline Card -->
+      <div class="card" style="border: 1px solid var(--border-violet); background: linear-gradient(180deg, rgba(139, 92, 246, 0.06) 0%, rgba(13, 22, 40, 0.9) 100%);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h3 style="color: #C4B5FD; margin: 0;">📊 Classical (Same 4 Feat)</h3>
+          <span class="muted" style="font-family: var(--font-mono); font-size: 11px;">Logistic Regression</span>
+        </div>
+
+        <div class="result-row">
+          <span class="result-label">Predicted Diagnosis:</span>
+          <span id="c-pred" class="result-value" style="font-size: 17px; font-weight: 800; color: #C4B5FD;"></span>
+        </div>
+
+        <div class="result-row">
+          <span class="result-label">Classification Confidence:</span>
+          <span id="c-conf" class="result-value mono" style="font-size: 16px; color: var(--text-pure);"></span>
+        </div>
+
+        <!-- Animated Classical Confidence Bar -->
+        <div class="confidence-bar-container">
+          <div id="c-bar" class="confidence-bar-fill" style="width: 0%; background: linear-gradient(90deg, #6366F1, #A855F7);"></div>
+        </div>
+
+        <div class="result-row">
+          <span class="result-label">Sigmoid Output Prob:</span>
+          <span id="c-score" class="result-value mono"></span>
+        </div>
+
+        <div id="c-badge" class="badge" style="width: 100%; justify-content: center; margin-top: 14px;"></div>
+      </div>
+
+    </div>
+
+    <!-- Action Controls: PDF Download & Full Telemetry -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-glass);">
+      <div style="color: var(--text-muted); font-size: 12.5px;">
+        <span>🔒 Audit Record Persisted to Clinic Database</span>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <a id="btn-download-pdf" href="#" class="btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #0284C7, #4F46E5);">
+          <span>📄</span> Download Report (PDF)
+        </a>
+        <a id="btn-view-detail" href="#" class="btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+          <span>🔍</span> Full Breakdown →
+        </a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+const MAX_TEST_SAMPLES = {{ n_test }};
+
+async function callPredict(idx) {
+  // Input validation
+  if (isNaN(idx) || idx < 0 || idx >= MAX_TEST_SAMPLES) {
+    if (window.showToast) {
+      window.showToast(`Invalid patient index. Please enter a value between 0 and ${MAX_TEST_SAMPLES - 1}.`, "error");
+    }
+    idx = Math.max(0, Math.min(parseInt(idx || 0, 10), MAX_TEST_SAMPLES - 1));
+  }
+
+  const btn = document.getElementById('btn-predict');
+  if (btn) {
+    btn.innerHTML = '<span>⚡</span> Computing Statevectors…';
+    btn.disabled = true;
+  }
+
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const res = await fetch("{{ url_for('predict_api') }}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken
+      },
+      body: JSON.stringify({index: idx})
+    });
+    
+    if (!res.ok) {
+      throw new Error("Diagnostic API error: " + res.status);
+    }
+    
+    const data = await res.json();
+    
+    const resultBox = document.getElementById('result');
+    resultBox.style.display = 'block';
+    
+    document.getElementById('r-true').innerText = data.true_label;
+    document.getElementById('patient-id-badge').innerText = `Sample Index #${data.index}`;
+
+    // Quantum Model Outputs
+    document.getElementById('q-pred').innerText = data.quantum_prediction;
+    const qPct = (data.quantum_confidence * 100).toFixed(1);
+    document.getElementById('q-conf').innerText = qPct + '%';
+    document.getElementById('q-bar').style.width = qPct + '%';
+    document.getElementById('q-score').innerText = data.quantum_raw_score;
+
+    const qBadge = document.getElementById('q-badge');
+    qBadge.innerText = data.quantum_correct ? '✓ Quantum Model: Correct' : '✗ Quantum Model: Misclassified';
+    qBadge.className = 'badge ' + (data.quantum_correct ? 'badge-ok' : 'badge-bad');
+
+    // Classical Model Outputs
+    document.getElementById('c-pred').innerText = data.classical_prediction || '—';
+    const cPct = data.classical_confidence !== null ? (data.classical_confidence * 100).toFixed(1) : '0';
+    document.getElementById('c-conf').innerText = cPct + '%';
+    document.getElementById('c-bar').style.width = cPct + '%';
+    document.getElementById('c-score').innerText = data.classical_raw_score !== null ? data.classical_raw_score : '—';
+
+    const cBadge = document.getElementById('c-badge');
+    if (data.classical_correct !== null) {
+      cBadge.innerText = data.classical_correct ? '✓ Classical Model: Correct' : '✗ Classical Model: Misclassified';
+      cBadge.className = 'badge ' + (data.classical_correct ? 'badge-ok' : 'badge-bad');
+      cBadge.style.display = 'inline-flex';
+    } else {
+      cBadge.style.display = 'none';
+    }
+
+    document.getElementById('idx').value = data.index;
+
+    // Update PDF Download and Detail Links
+    const pdfBtn = document.getElementById('btn-download-pdf');
+    const detailBtn = document.getElementById('btn-view-detail');
+    if (data.prediction_id) {
+      if (pdfBtn) {
+        pdfBtn.href = `/history/${data.prediction_id}/pdf`;
+        pdfBtn.style.display = 'inline-flex';
+      }
+      if (detailBtn) {
+        detailBtn.href = `/history/${data.prediction_id}`;
+        detailBtn.style.display = 'inline-flex';
+      }
+    } else {
+      if (pdfBtn) pdfBtn.href = `/predict/pdf?index=${data.index}`;
+      if (detailBtn) detailBtn.style.display = 'none';
+    }
+
+  } catch (err) {
+    console.error(err);
+    if (window.showToast) {
+      window.showToast("Failed to compute prediction: " + err.message, "error");
+    }
+  } finally {
+    if (btn) {
+      btn.innerHTML = '<span>🔬</span> Run Dual Inference';
+      btn.disabled = false;
+    }
+  }
+}
+
+function setAndPredict(idx) {
+  document.getElementById('idx').value = idx;
+  callPredict(idx);
+}
+
+function runPredict() {
+  const val = document.getElementById('idx').value;
+  const idx = parseInt(val, 10);
+  if (isNaN(idx) || idx < 0 || idx >= MAX_TEST_SAMPLES) {
+    if (window.showToast) {
+      window.showToast(`Please enter an index between 0 and ${MAX_TEST_SAMPLES - 1}`, "warning");
+    }
+    return;
+  }
+  callPredict(idx);
+}
+
+function randomPredict() {
+  const randIdx = Math.floor(Math.random() * MAX_TEST_SAMPLES);
+  setAndPredict(randIdx);
+}
+
+// Auto-run patient 0 on initial visit
+document.addEventListener('DOMContentLoaded', () => {
+  runPredict();
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}REST API Documentation · SIH26139{% endblock %}
+
+{% block content %}
+<section class="dash-header">
+  <div class="eyebrow">
+    <span>●</span>
+    <span>Hospital & Clinical System Interoperability</span>
+  </div>
+  <h1>REST API Reference (v1)</h1>
+  <p class="lede">
+    Programmatic interface for hospital electronic medical records (EHR/HIS) and laboratory management systems (LIMS) to execute real-time hybrid quantum oncological diagnostics.
+  </p>
+</section>
+
+<!-- Overview & Auth Banner -->
+<div class="grid-2" style="margin-bottom: 24px;">
+  <div class="card" style="border-left: 3px solid var(--primary-cyan);">
+    <h3 style="color: var(--primary-cyan); margin-bottom: 8px;">🔑 Authentication Header</h3>
+    <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 12px;">
+      All protected endpoints require an API Key supplied in the <code>X-API-Key</code> request header.
+    </p>
+    <div style="background: rgba(7, 11, 20, 0.8); padding: 10px 14px; border-radius: 4px; font-family: monospace; font-size: 12.5px; color: var(--quantum-teal);">
+      X-API-Key: qml_live_&lt;your_secret_key&gt;
+    </div>
+  </div>
+
+  <div class="card" style="border-left: 3px solid var(--accent-violet);">
+    <h3 style="color: #C4B5FD; margin-bottom: 8px;">⏱ Rate Limiting Policies</h3>
+    <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 12px;">
+      To ensure fair resource allocation on quantum simulation engines:
+    </p>
+    <ul style="margin: 0; padding-left: 18px; font-size: 12.5px; color: var(--text-dim); line-height: 1.6;">
+      <li><code>/api/v1/predict</code>: <strong>30 requests / minute</strong> per API key</li>
+      <li><code>/api/v1/history</code>: <strong>60 requests / minute</strong> per API key</li>
+      <li>Exceeded requests receive HTTP <code>429 Too Many Requests</code>.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Endpoint 1: POST /api/v1/predict -->
+<section class="card wide" style="margin-bottom: 24px; border: 1px solid var(--border-glass);">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span class="pill" style="background: rgba(0, 229, 255, 0.15); color: var(--primary-cyan); font-weight: 800; border-color: var(--border-cyan);">POST</span>
+      <h2 style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 18px;">/api/v1/predict</h2>
+    </div>
+    <span class="pill" style="font-size: 11.5px; color: var(--quantum-teal); border-color: var(--border-teal);">Requires API Key</span>
+  </div>
+
+  <p style="font-size: 13.5px; color: var(--text-dim); margin-bottom: 16px;">
+    Executes real-time simultaneous inference across the <strong>4-Qubit Hybrid Variational Quantum Classifier</strong> and the <strong>Classical Fair Baseline</strong> for a single patient feature vector. Automatically persists the inference into the clinical audit database under your practitioner account.
+  </p>
+
+  <h4 style="color: var(--text-pure); margin-bottom: 8px;">Request Payload (JSON)</h4>
+  <div class="code-block" style="background: rgba(7, 11, 20, 0.95); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px;">
+    <pre style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #E2E8F0;"><code>{
+  <span style="color: #00E5FF;">"features"</span>: [<span style="color: #FBBF24;">0.2845</span>, <span style="color: #FBBF24;">-0.1492</span>, <span style="color: #FBBF24;">0.0821</span>, <span style="color: #FBBF24;">-0.0195</span>],
+  <span style="color: #00E5FF;">"dataset"</span>: <span style="color: #00F5D4;">"Breast Cancer Wisconsin (Diagnostic)"</span>
+}</code></pre>
+  </div>
+
+  <h4 style="color: var(--text-pure); margin-bottom: 8px;">Success Response (200 OK)</h4>
+  <div class="code-block" style="background: rgba(7, 11, 20, 0.95); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px;">
+    <pre style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #E2E8F0;"><code>{
+  <span style="color: #00E5FF;">"status"</span>: <span style="color: #00F5D4;">"success"</span>,
+  <span style="color: #00E5FF;">"prediction_id"</span>: <span style="color: #FBBF24;">42</span>,
+  <span style="color: #00E5FF;">"quantum"</span>: {
+    <span style="color: #00E5FF;">"prediction"</span>: <span style="color: #00F5D4;">"Malignant"</span>,
+    <span style="color: #00E5FF;">"probability"</span>: <span style="color: #FBBF24;">0.8850</span>,
+    <span style="color: #00E5FF;">"confidence"</span>: <span style="color: #FBBF24;">0.8850</span>
+  },
+  <span style="color: #00E5FF;">"classical"</span>: {
+    <span style="color: #00E5FF;">"prediction"</span>: <span style="color: #00F5D4;">"Malignant"</span>,
+    <span style="color: #00E5FF;">"probability"</span>: <span style="color: #FBBF24;">0.9520</span>,
+    <span style="color: #00E5FF;">"confidence"</span>: <span style="color: #FBBF24;">0.9520</span>
+  },
+  <span style="color: #00E5FF;">"consensus"</span>: <span style="color: #38BDF8;">true</span>,
+  <span style="color: #00E5FF;">"dataset"</span>: <span style="color: #00F5D4;">"Breast Cancer Wisconsin (Diagnostic)"</span>,
+  <span style="color: #00E5FF;">"timestamp"</span>: <span style="color: #00F5D4;">"2026-08-28T14:45:00Z"</span>
+}</code></pre>
+  </div>
+</section>
+
+<!-- Endpoint 2: GET /api/v1/history -->
+<section class="card wide" style="margin-bottom: 24px; border: 1px solid var(--border-glass);">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span class="pill" style="background: rgba(139, 92, 246, 0.15); color: #C4B5FD; font-weight: 800; border-color: var(--border-violet);">GET</span>
+      <h2 style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 18px;">/api/v1/history</h2>
+    </div>
+    <span class="pill" style="font-size: 11.5px; color: var(--quantum-teal); border-color: var(--border-teal);">Requires API Key</span>
+  </div>
+
+  <p style="font-size: 13.5px; color: var(--text-dim); margin-bottom: 16px;">
+    Retrieves a paginated list of all diagnostic inferences performed by the authenticated practitioner account. Strict isolation guarantees that doctors can only view their own prediction records.
+  </p>
+
+  <h4 style="color: var(--text-pure); margin-bottom: 8px;">Query Parameters</h4>
+  <ul style="font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 16px;">
+    <li><code>page</code> (integer, default: <code>1</code>): Page number.</li>
+    <li><code>per_page</code> (integer, default: <code>20</code>, max: <code>100</code>): Records per page.</li>
+    <li><code>result</code> (string, optional): Filter by <code>Malignant</code> or <code>Benign</code>.</li>
+  </ul>
+
+  <h4 style="color: var(--text-pure); margin-bottom: 8px;">Success Response (200 OK)</h4>
+  <div class="code-block" style="background: rgba(7, 11, 20, 0.95); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); padding: 14px;">
+    <pre style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #E2E8F0;"><code>{
+  <span style="color: #00E5FF;">"status"</span>: <span style="color: #00F5D4;">"success"</span>,
+  <span style="color: #00E5FF;">"page"</span>: <span style="color: #FBBF24;">1</span>,
+  <span style="color: #00E5FF;">"per_page"</span>: <span style="color: #FBBF24;">20</span>,
+  <span style="color: #00E5FF;">"total"</span>: <span style="color: #FBBF24;">14</span>,
+  <span style="color: #00E5FF;">"pages"</span>: <span style="color: #FBBF24;">1</span>,
+  <span style="color: #00E5FF;">"predictions"</span>: [
+    {
+      <span style="color: #00E5FF;">"id"</span>: <span style="color: #FBBF24;">42</span>,
+      <span style="color: #00E5FF;">"dataset"</span>: <span style="color: #00F5D4;">"Breast Cancer Wisconsin (Diagnostic)"</span>,
+      <span style="color: #00E5FF;">"model_used"</span>: <span style="color: #00F5D4;">"both"</span>,
+      <span style="color: #00E5FF;">"prediction_result"</span>: <span style="color: #00F5D4;">"Malignant"</span>,
+      <span style="color: #00E5FF;">"confidence"</span>: <span style="color: #FBBF24;">0.8850</span>,
+      <span style="color: #00E5FF;">"created_at"</span>: <span style="color: #00F5D4;">"2026-08-28 14:45:00"</span>
+    }
+  ]
+}</code></pre>
+  </div>
+</section>
+
+<!-- Endpoint 3: GET /api/v1/health -->
+<section class="card wide" style="margin-bottom: 24px; border: 1px solid var(--border-glass);">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span class="pill" style="background: rgba(139, 92, 246, 0.15); color: #C4B5FD; font-weight: 800; border-color: var(--border-violet);">GET</span>
+      <h2 style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 18px;">/api/v1/health</h2>
+    </div>
+    <span class="pill" style="font-size: 11.5px; color: #34D399; border-color: #059669;">Public / Unauthenticated</span>
+  </div>
+
+  <p style="font-size: 13.5px; color: var(--text-dim); margin-bottom: 16px;">
+    Uptime and subsystem health check verifying database availability and quantum execution backend status.
+  </p>
+
+  <h4 style="color: var(--text-pure); margin-bottom: 8px;">Success Response (200 OK)</h4>
+  <div class="code-block" style="background: rgba(7, 11, 20, 0.95); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); padding: 14px;">
+    <pre style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #E2E8F0;"><code>{
+  <span style="color: #00E5FF;">"status"</span>: <span style="color: #00F5D4;">"healthy"</span>,
+  <span style="color: #00E5FF;">"platform"</span>: <span style="color: #00F5D4;">"SIH26139 Hybrid Quantum ML"</span>,
+  <span style="color: #00E5FF;">"version"</span>: <span style="color: #00F5D4;">"1.0.0"</span>,
+  <span style="color: #00E5FF;">"quantum_engine"</span>: <span style="color: #00F5D4;">"online"</span>,
+  <span style="color: #00E5FF;">"quantum_backend"</span>: <span style="color: #00F5D4;">"simulator"</span>,
+  <span style="color: #00E5FF;">"database"</span>: <span style="color: #00F5D4;">"connected"</span>,
+  <span style="color: #00E5FF;">"timestamp"</span>: <span style="color: #00F5D4;">"2026-08-28T14:45:00Z"</span>
+}</code></pre>
+  </div>
+</section>
+
+<!-- Error Handling Standards Table -->
+<section class="card wide">
+  <div class="eyebrow" style="margin-bottom: 6px;">
+    <span>●</span>
+    <span>Standardized HTTP Status Codes</span>
+  </div>
+  <h2 style="margin-bottom: 16px;">Error Codes & Responses</h2>
+
+  <div style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border-glass); color: var(--text-dim); font-size: 11.5px; text-transform: uppercase;">
+          <th style="padding: 10px 14px;">HTTP Code</th>
+          <th style="padding: 10px 14px;">Name</th>
+          <th style="padding: 10px 14px;">Trigger Condition</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+          <td style="padding: 10px 14px; font-family: monospace; color: #38BDF8; font-weight: 700;">200 OK</td>
+          <td style="padding: 10px 14px; color: var(--text-pure);">Success</td>
+          <td style="padding: 10px 14px; color: var(--text-dim);">Request executed successfully.</td>
+        </tr>
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+          <td style="padding: 10px 14px; font-family: monospace; color: #FBBF24; font-weight: 700;">400 Bad Request</td>
+          <td style="padding: 10px 14px; color: var(--text-pure);">Invalid Input</td>
+          <td style="padding: 10px 14px; color: var(--text-dim);">Missing <code>features</code> payload, non-numeric values, or invalid dimension.</td>
+        </tr>
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+          <td style="padding: 10px 14px; font-family: monospace; color: #F87171; font-weight: 700;">401 Unauthorized</td>
+          <td style="padding: 10px 14px; color: var(--text-pure);">Authentication Required</td>
+          <td style="padding: 10px 14px; color: var(--text-dim);">Missing or invalid <code>X-API-Key</code> header.</td>
+        </tr>
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+          <td style="padding: 10px 14px; font-family: monospace; color: #F87171; font-weight: 700;">429 Too Many Requests</td>
+          <td style="padding: 10px 14px; color: var(--text-pure);">Rate Limited</td>
+          <td style="padding: 10px 14px; color: var(--text-dim);">Exceeded 30 calls/minute rate limit.</td>
+        </tr>
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+          <td style="padding: 10px 14px; font-family: monospace; color: #EF4444; font-weight: 700;">500 Internal Error</td>
+          <td style="padding: 10px 14px; color: var(--text-pure);">Server Failure</td>
+          <td style="padding: 10px 14px; color: var(--text-dim);">Unexpected backend error (stack traces are sanitized).</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

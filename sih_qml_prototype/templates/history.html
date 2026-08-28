@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Diagnostic History · Quantum Medical Portal{% endblock %}
+
+{% block content %}
+<section class="dash-header">
+  <div class="eyebrow">
+    <span>●</span>
+    <span>Clinical Audit Trail · Personal Inference Records</span>
+  </div>
+  <h1>Diagnostic Prediction History</h1>
+  <p class="lede">
+    Audit and review past single-patient and batch inferences executed under your practitioner session.
+  </p>
+</section>
+
+<!-- Filter Toolbar -->
+<div class="card" style="margin-bottom: 24px; padding: 18px 24px; border: 1px solid var(--border-glass);">
+  <form method="GET" action="{{ url_for('history_page') }}" style="display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;">
+    <div style="flex: 1; min-width: 160px;">
+      <label for="model" style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">Model Branch</label>
+      <select id="model" name="model" style="width: 100%; padding: 9px 12px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 13.5px;">
+        <option value="" {% if not current_model %}selected{% endif %}>All Models</option>
+        <option value="both" {% if current_model == 'both' %}selected{% endif %}>Dual (Quantum + Classical)</option>
+        <option value="quantum" {% if current_model == 'quantum' %}selected{% endif %}>Quantum VQC Only</option>
+        <option value="classical" {% if current_model == 'classical' %}selected{% endif %}>Classical Baseline Only</option>
+      </select>
+    </div>
+
+    <div style="flex: 1; min-width: 160px;">
+      <label for="result" style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">Diagnosis Result</label>
+      <select id="result" name="result" style="width: 100%; padding: 9px 12px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 13.5px;">
+        <option value="" {% if not current_result %}selected{% endif %}>All Results</option>
+        <option value="Malignant" {% if current_result == 'Malignant' %}selected{% endif %}>Malignant (Positive)</option>
+        <option value="Benign" {% if current_result == 'Benign' %}selected{% endif %}>Benign (Negative)</option>
+      </select>
+    </div>
+
+    <div style="flex: 1; min-width: 160px;">
+      <label for="sort" style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">Sort Order</label>
+      <select id="sort" name="sort" style="width: 100%; padding: 9px 12px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 13.5px;">
+        <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>Newest First</option>
+        <option value="oldest" {% if current_sort == 'oldest' %}selected{% endif %}>Oldest First</option>
+        <option value="conf_desc" {% if current_sort == 'conf_desc' %}selected{% endif %}>Highest Confidence</option>
+        <option value="conf_asc" {% if current_sort == 'conf_asc' %}selected{% endif %}>Lowest Confidence</option>
+      </select>
+    </div>
+
+    <div>
+      <button type="submit" class="btn-primary" style="padding: 9px 18px; font-size: 13.5px;">
+        <span>🔍</span> Filter
+      </button>
+      <a href="{{ url_for('history_page') }}" class="pill" style="margin-left: 6px; padding: 9px 14px; text-decoration: none; font-size: 13px; border-color: rgba(255,255,255,0.12);">
+        Reset
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- History Table -->
+<section class="card wide" style="margin-bottom: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <div>
+      <div class="eyebrow" style="margin-bottom: 4px;">
+        <span>●</span>
+        <span>Diagnostic Inferences</span>
+      </div>
+      <h2 style="margin: 0;">Session Records (Total: {{ pagination.total }})</h2>
+    </div>
+    <span class="pill" style="border-color: var(--border-cyan); color: var(--primary-cyan);">
+      Page {{ pagination.page }} of {{ pagination.pages or 1 }}
+    </span>
+  </div>
+
+  {% if pagination.items %}
+  <div style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border-glass); color: var(--text-dim); font-size: 12px; text-transform: uppercase;">
+          <th style="padding: 12px 14px;">ID</th>
+          <th style="padding: 12px 14px;">Timestamp (UTC)</th>
+          <th style="padding: 12px 14px;">Dataset</th>
+          <th style="padding: 12px 14px;">Model</th>
+          <th style="padding: 12px 14px;">Prediction</th>
+          <th style="padding: 12px 14px;">Confidence</th>
+          <th style="padding: 12px 14px;">Ground Truth</th>
+          <th style="padding: 12px 14px; text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pred in pagination.items %}
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+          <td style="padding: 12px 14px; font-family: 'JetBrains Mono', monospace; color: var(--text-dim);">#{{ pred.id }}</td>
+          <td style="padding: 12px 14px; font-size: 12.5px; color: var(--text-dim);">{{ pred.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td style="padding: 12px 14px; color: var(--text-main); font-size: 13px;">{{ pred.dataset_name }}</td>
+          <td style="padding: 12px 14px;">
+            {% if pred.model_used == 'both' %}
+              <span class="pill" style="padding: 3px 8px; font-size: 11px; background: rgba(0, 229, 255, 0.08); color: var(--primary-cyan); border-color: var(--border-cyan);">Dual (Q+C)</span>
+            {% elif pred.model_used == 'quantum' %}
+              <span class="pill" style="padding: 3px 8px; font-size: 11px; background: rgba(0, 245, 212, 0.08); color: var(--quantum-teal); border-color: var(--border-teal);">Quantum VQC</span>
+            {% else %}
+              <span class="pill" style="padding: 3px 8px; font-size: 11px; background: rgba(139, 92, 246, 0.08); color: #C4B5FD; border-color: var(--border-violet);">Classical</span>
+            {% endif %}
+          </td>
+          <td style="padding: 12px 14px;">
+            {% if pred.prediction_result == 'Malignant' %}
+              <span class="badge badge-malignant" style="font-size: 11.5px; padding: 3px 8px;">Malignant</span>
+            {% else %}
+              <span class="badge badge-benign" style="font-size: 11.5px; padding: 3px 8px;">Benign</span>
+            {% endif %}
+          </td>
+          <td style="padding: 12px 14px; font-family: 'JetBrains Mono', monospace; font-size: 13px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>{{ "%.1f"|format(pred.confidence * 100) }}%</span>
+              <div style="width: 50px; height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden;">
+                <div style="width: {{ pred.confidence * 100 }}%; height: 100%; background: {% if pred.prediction_result == 'Malignant' %}#EF4444{% else %}#10B981{% endif %};"></div>
+              </div>
+            </div>
+          </td>
+          <td style="padding: 12px 14px; font-size: 12.5px;">
+            {% if pred.true_label %}
+              {% if pred.is_correct %}
+                <span style="color: #34D399; font-weight: 600;">✓ {{ pred.true_label }}</span>
+              {% else %}
+                <span style="color: #F87171; font-weight: 600;">✗ {{ pred.true_label }}</span>
+              {% endif %}
+            {% else %}
+              <span style="color: var(--text-dim);">—</span>
+            {% endif %}
+          </td>
+          <td style="padding: 12px 14px; text-align: right;">
+            <a href="{{ url_for('history_detail', pred_id=pred.id) }}" class="pill" style="text-decoration: none; padding: 4px 10px; font-size: 12px; border-color: var(--border-cyan); color: var(--primary-cyan); transition: all 0.2s;" onmouseover="this.style.background='rgba(0, 229, 255, 0.1)'" onmouseout="this.style.background='transparent'">
+              Details →
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination Bar -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-glass);">
+    <div>
+      {% if pagination.has_prev %}
+        <a href="{{ url_for('history_page', page=pagination.prev_num, model=current_model, result=current_result, sort=current_sort) }}" class="btn-secondary" style="padding: 7px 14px; font-size: 13px; text-decoration: none;">
+          ← Previous
+        </a>
+      {% else %}
+        <span class="pill" style="opacity: 0.4; cursor: not-allowed;">← Previous</span>
+      {% endif %}
+    </div>
+
+    <div style="font-size: 13px; color: var(--text-dim);">
+      Showing records {{ (pagination.page - 1) * pagination.per_page + 1 }} to {{ [(pagination.page * pagination.per_page), pagination.total]|min }} of {{ pagination.total }}
+    </div>
+
+    <div>
+      {% if pagination.has_next %}
+        <a href="{{ url_for('history_page', page=pagination.next_num, model=current_model, result=current_result, sort=current_sort) }}" class="btn-secondary" style="padding: 7px 14px; font-size: 13px; text-decoration: none;">
+          Next →
+        </a>
+      {% else %}
+        <span class="pill" style="opacity: 0.4; cursor: not-allowed;">Next →</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% else %}
+  <div style="text-align: center; padding: 48px 20px; color: var(--text-dim);">
+    <div style="font-size: 32px; margin-bottom: 12px;">📁</div>
+    <div style="font-size: 16px; font-weight: 600; color: var(--text-pure); margin-bottom: 6px;">No diagnostic records found</div>
+    <p style="font-size: 13.5px; max-width: 420px; margin: 0 auto 18px;">
+      Inferences generated via the <a href="{{ url_for('predict_page') }}" style="color: var(--primary-cyan);">Diagnostic Terminal</a> or <a href="{{ url_for('upload_page') }}" style="color: var(--primary-cyan);">Batch Upload</a> will be automatically cataloged here.
+    </p>
+    <a href="{{ url_for('predict_page') }}" class="btn-primary" style="display: inline-flex; text-decoration: none;">
+      <span>🔬</span> Run Clinical Diagnostic
+    </a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

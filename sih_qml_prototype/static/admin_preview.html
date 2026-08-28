@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Administrator Control Console · SIH26139 · SIH26139</title>
+<meta name="description" content="Hybrid Quantum-Classical Machine Learning Platform for Early Disease Detection using Variational Quantum Classifiers (VQC) and parameter-shift gradients.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23070B14'/><circle cx='50' cy='50' r='36' stroke='%2300E5FF' stroke-width='4' fill='none'/><ellipse cx='50' cy='50' rx='42' ry='15' stroke='%238B5CF6' stroke-width='3' fill='none' transform='rotate(35 50 50)'/><ellipse cx='50' cy='50' rx='42' ry='15' stroke='%2300F5D4' stroke-width='3' fill='none' transform='rotate(-35 50 50)'/><circle cx='50' cy='50' r='8' fill='%2300E5FF'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<!-- Ambient Glow Orbs -->
+<div class="bg-ambient-orb bg-orb-1"></div>
+<div class="bg-ambient-orb bg-orb-2"></div>
+<div class="bg-ambient-orb bg-orb-3"></div>
+
+<!-- Lightweight Interactive Quantum Mesh Background -->
+<canvas id="bg-canvas"></canvas>
+
+<nav class="topnav">
+  <a href="/" class="brand">
+    <span class="brand-mark">Q</span>
+    <span>Hybrid<strong>QML</strong></span>
+  </a>
+  <div class="nav-links">
+    <a href="/">Overview</a>
+    
+      <a href="/dashboard">Dashboard</a>
+      <a href="/predict">Try it</a>
+      <a href="/upload">Upload Batch</a>
+      
+        <a href="/admin" style="color: #FCA5A5;">Admin Portal</a>
+      
+    
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 12px;">
+    
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-pure); background: rgba(255,255,255,0.03); padding: 4px 10px; border-radius: var(--radius-full); border: 1px solid var(--border-glass);">
+        <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--primary-cyan); box-shadow: 0 0 8px var(--primary-cyan);"></span>
+        <span style="font-weight: 500;">System Administrator</span>
+        
+          <span class="pill" style="padding: 2px 7px; font-size: 10px; background: rgba(239, 68, 68, 0.15); color: #FCA5A5; border-color: rgba(239, 68, 68, 0.3);">Admin</span>
+        
+      </div>
+      <a href="/logout" class="pill" style="text-decoration: none; border-color: rgba(255,255,255,0.15); color: var(--text-dim); transition: all 0.2s;"
+         onmouseover="this.style.color='var(--text-pure)'; this.style.borderColor='var(--border-cyan)';"
+         onmouseout="this.style.color='var(--text-dim)'; this.style.borderColor='rgba(255,255,255,0.15)';">
+        Sign Out ⎋
+      </a>
+    
+  </div>
+</nav>
+
+<!-- Subtle Floating Toast Notifications -->
+<div id="toast-container" class="toast-container"></div>
+
+<main>
+
+<section class="hero" style="margin-bottom: 24px;">
+  <div class="hero-content">
+    <div class="eyebrow" style="border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.08); color: #FCA5A5;">
+      <span>●</span>
+      <span>RESTRICTED ACCESS · SYSTEM ADMINISTRATOR PORTAL</span>
+    </div>
+    <h1>Administrator Console</h1>
+    <p class="lede">
+      System health monitoring, user account auditing, and quantum cluster access governance.
+    </p>
+  </div>
+</section>
+
+<div class="grid-3" style="margin-bottom: 28px;">
+  <div class="card stat-card" style="border-color: var(--border-cyan);">
+    <div class="stat-label">Registered Practitioners</div>
+    <div class="stat-value count-num" style="color: var(--primary-cyan);">2</div>
+    <div class="stat-desc">Active diagnostic accounts</div>
+  </div>
+
+  <div class="card stat-card" style="border-color: var(--border-violet);">
+    <div class="stat-label">Security Protocol</div>
+    <div class="stat-value" style="font-size: 24px; color: #C4B5FD; margin: 8px 0;">Werkzeug PBKDF2</div>
+    <div class="stat-desc">Salted password hashing</div>
+  </div>
+
+  <div class="card stat-card" style="border-color: var(--border-teal);">
+    <div class="stat-label">Database Status</div>
+    <div class="stat-value" style="font-size: 24px; color: var(--quantum-teal); margin: 8px 0;">SQLite 3</div>
+    <div class="stat-desc">instance/app.db connected</div>
+  </div>
+</div>
+
+<section class="card wide" style="margin-bottom: 32px;">
+  <div class="eyebrow" style="margin-bottom: 6px;">
+    <span>●</span>
+    <span>Audited User Accounts</span>
+  </div>
+  <h2 style="margin-bottom: 16px;">Registered System Accounts</h2>
+
+  <div style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border-glass); color: var(--text-dim); font-size: 12px; text-transform: uppercase;">
+          <th style="padding: 10px 14px;">ID</th>
+          <th style="padding: 10px 14px;">Name</th>
+          <th style="padding: 10px 14px;">Email</th>
+          <th style="padding: 10px 14px;">Role</th>
+          <th style="padding: 10px 14px;">Registered Date (UTC)</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+          <td style="padding: 12px 14px; font-family: 'JetBrains Mono', monospace; color: var(--text-dim);">#1</td>
+          <td style="padding: 12px 14px; font-weight: 600; color: var(--text-pure);">System Administrator</td>
+          <td style="padding: 12px 14px; color: var(--text-main); font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">admin@quantum.health</td>
+          <td style="padding: 12px 14px;">
+            
+              <span class="pill" style="background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border-color: rgba(239, 68, 68, 0.3);">Admin</span>
+            
+          </td>
+          <td style="padding: 12px 14px; color: var(--text-dim); font-size: 12.5px;">2026-08-28 12:35</td>
+        </tr>
+        
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+          <td style="padding: 12px 14px; font-family: 'JetBrains Mono', monospace; color: var(--text-dim);">#2</td>
+          <td style="padding: 12px 14px; font-weight: 600; color: var(--text-pure);">Dr. Eleanor Vance, MD</td>
+          <td style="padding: 12px 14px; color: var(--text-main); font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">eleanor@quantum.health</td>
+          <td style="padding: 12px 14px;">
+            
+              <span class="pill" style="background: rgba(0, 229, 255, 0.1); color: var(--primary-cyan); border-color: var(--border-cyan);">Doctor</span>
+            
+          </td>
+          <td style="padding: 12px 14px; color: var(--text-dim); font-size: 12.5px;">2026-08-28 12:35</td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  Hybrid Quantum-Classical ML Platform — prototype built for Smart India Hackathon 2026 · Problem SIH26139
+</footer>
+
+<script>
+// Global Cyber Toast Notification System
+window.showToast = function(message, type = 'info', duration = 3500) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  
+  const icon = type === 'success' ? '✓' : (type === 'error' ? '✗' : (type === 'warning' ? '⚠' : 'ℹ'));
+  
+  toast.innerHTML = `
+    <span class="toast-icon">${icon}</span>
+    <span class="toast-msg">${message}</span>
+    <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+  `;
+
+  container.appendChild(toast);
+
+  // Trigger animation
+  requestAnimationFrame(() => {
+    toast.classList.add('toast-show');
+  });
+
+  setTimeout(() => {
+    toast.classList.remove('toast-show');
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+};
+
+// Process Flask Flashed Messages on page load
+document.addEventListener('DOMContentLoaded', () => {
+  
+    
+      
+        window.showToast("Welcome back, System Administrator!", "success");
+      
+    
+  
+});
+</script>
+
+<script>
+// Lightweight quantum particle mesh animation (pauses when hidden)
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let width, height;
+  let particles = [];
+  let animId = null;
+  const numParticles = 42;
+
+  function resize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  for (let i = 0; i < numParticles; i++) {
+    particles.push({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 0.45,
+      vy: (Math.random() - 0.5) * 0.45,
+      radius: Math.random() * 1.6 + 0.8,
+      color: i % 3 === 0 ? 'rgba(0, 229, 255, 0.4)' : (i % 3 === 1 ? 'rgba(139, 92, 246, 0.35)' : 'rgba(0, 245, 212, 0.35)')
+    });
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, width, height);
+
+    // Draw connecting quantum entanglement lines
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 130) {
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(0, 229, 255, ${(1 - dist / 130) * 0.12})`;
+          ctx.lineWidth = 0.8;
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Update and draw particles
+    for (let p of particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0) p.x = width;
+      if (p.x > width) p.x = 0;
+      if (p.y < 0) p.y = height;
+      if (p.y > height) p.y = 0;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fillStyle = p.color;
+      ctx.fill();
+    }
+
+    animId = requestAnimationFrame(render);
+  }
+
+  function start() {
+    if (!animId) {
+      animId = requestAnimationFrame(render);
+    }
+  }
+
+  function stop() {
+    if (animId) {
+      cancelAnimationFrame(animId);
+      animId = null;
+    }
+  }
+
+  // CPU efficiency: Pause animation when tab is not visible
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      stop();
+    } else {
+      start();
+    }
+  });
+
+  start();
+})();
+</script>
+</body>
+</html>

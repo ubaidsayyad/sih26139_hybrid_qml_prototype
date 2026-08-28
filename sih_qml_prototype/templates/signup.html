@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Register · Quantum Medical Portal{% endblock %}
+
+{% block content %}
+<div class="auth-container" style="max-width: 500px; margin: 30px auto 60px;">
+  <div class="card" style="padding: 32px 28px; border: 1px solid var(--border-glass); box-shadow: 0 16px 36px rgba(0,0,0,0.5);">
+    <div class="eyebrow" style="margin-bottom: 8px;">
+      <span>●</span>
+      <span>Medical Staff Onboarding</span>
+    </div>
+    
+    <h1 style="font-size: 26px; margin-bottom: 8px; font-family: 'Space Grotesk', sans-serif;">
+      Create Account
+    </h1>
+    <p class="lede" style="font-size: 13.5px; margin-bottom: 24px; color: var(--text-dim);">
+      Join the hybrid quantum-classical medical platform for advanced oncological screening.
+    </p>
+
+    <form method="POST" action="{{ url_for('signup_page') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label for="name" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px; color: var(--text-pure);">
+          Full Name / Practitioner Title
+        </label>
+        <input type="text" id="name" name="name" required placeholder="Dr. Jane Doe, MD"
+               style="width: 100%; padding: 11px 14px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 14px; outline: none; transition: border-color 0.2s;"
+               onfocus="this.style.borderColor='var(--primary-cyan)'" onblur="this.style.borderColor='var(--border-subtle)'">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label for="email" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px; color: var(--text-pure);">
+          Work Email Address
+        </label>
+        <input type="email" id="email" name="email" required placeholder="jane.doe@quantum.health"
+               style="width: 100%; padding: 11px 14px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 14px; outline: none; transition: border-color 0.2s;"
+               onfocus="this.style.borderColor='var(--primary-cyan)'" onblur="this.style.borderColor='var(--border-subtle)'">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label for="role" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px; color: var(--text-pure);">
+          Account Role
+        </label>
+        <select id="role" name="role"
+                style="width: 100%; padding: 11px 14px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 14px; outline: none; transition: border-color 0.2s;">
+          <option value="doctor" selected>Clinical Doctor / Oncologist</option>
+          <option value="admin">System Administrator</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label for="password" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px; color: var(--text-pure);">
+          Password (min. 8 characters)
+        </label>
+        <input type="password" id="password" name="password" required minlength="8" placeholder="••••••••••••"
+               style="width: 100%; padding: 11px 14px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 14px; outline: none; transition: border-color 0.2s;"
+               onfocus="this.style.borderColor='var(--primary-cyan)'" onblur="this.style.borderColor='var(--border-subtle)'">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 24px;">
+        <label for="confirm_password" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px; color: var(--text-pure);">
+          Confirm Password
+        </label>
+        <input type="password" id="confirm_password" name="confirm_password" required minlength="8" placeholder="••••••••••••"
+               style="width: 100%; padding: 11px 14px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 14px; outline: none; transition: border-color 0.2s;"
+               onfocus="this.style.borderColor='var(--primary-cyan)'" onblur="this.style.borderColor='var(--border-subtle)'">
+      </div>
+
+      <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px 16px; font-size: 14.5px;">
+        <span>📝</span> Create Account & Enter Portal
+      </button>
+    </form>
+
+    <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-subtle); text-align: center; font-size: 13px; color: var(--text-dim);">
+      Already have credentials?
+      <a href="{{ url_for('login_page') }}" style="color: var(--primary-cyan); font-weight: 600; text-decoration: none; margin-left: 4px;">
+        Sign In →
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

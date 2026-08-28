@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Administrator Control Console · SIH26139{% endblock %}
+
+{% block content %}
+<section class="hero" style="margin-bottom: 24px;">
+  <div class="hero-content">
+    <div class="eyebrow" style="border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.08); color: #FCA5A5;">
+      <span>●</span>
+      <span>RESTRICTED ACCESS · SYSTEM ADMINISTRATOR PORTAL</span>
+    </div>
+    <h1>Administrator Console</h1>
+    <p class="lede">
+      System health monitoring, user account auditing, and quantum cluster access governance.
+    </p>
+  </div>
+</section>
+
+<div class="grid-3" style="margin-bottom: 28px;">
+  <div class="card stat-card" style="border-color: var(--border-cyan);">
+    <div class="stat-label">Registered Practitioners</div>
+    <div class="stat-value count-num" style="color: var(--primary-cyan);">{{ users|length }}</div>
+    <div class="stat-desc">Active diagnostic accounts</div>
+  </div>
+
+  <div class="card stat-card" style="border-color: var(--border-violet);">
+    <div class="stat-label">Total Audited Inferences</div>
+    <div class="stat-value count-num" style="color: #C4B5FD;">{{ total_predictions or 0 }}</div>
+    <div class="stat-desc">Global platform inferences</div>
+  </div>
+
+  <div class="card stat-card" style="border-color: var(--border-teal);">
+    <div class="stat-label">Audit Console</div>
+    <div style="margin: 10px 0;">
+      <a href="{{ url_for('admin_all_history_page') }}" class="btn-primary" style="padding: 7px 12px; font-size: 12.5px; text-decoration: none; display: inline-flex;">
+        <span>📜</span> View Global Audit Log →
+      </a>
+    </div>
+    <div class="stat-desc">Cross-account prediction history</div>
+  </div>
+</div>
+
+<section class="card wide" style="margin-bottom: 32px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <div>
+      <div class="eyebrow" style="margin-bottom: 4px;">
+        <span>●</span>
+        <span>Audited User Accounts</span>
+      </div>
+      <h2 style="margin: 0;">Registered System Accounts</h2>
+    </div>
+    <a href="{{ url_for('admin_all_history_page') }}" class="pill" style="text-decoration: none; border-color: var(--border-cyan); color: var(--primary-cyan);">
+      Inspect All Inferences →
+    </a>
+  </div>
+
+  <div style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border-glass); color: var(--text-dim); font-size: 12px; text-transform: uppercase;">
+          <th style="padding: 10px 14px;">ID</th>
+          <th style="padding: 10px 14px;">Name</th>
+          <th style="padding: 10px 14px;">Email</th>
+          <th style="padding: 10px 14px;">Role</th>
+          <th style="padding: 10px 14px;">Registered Date (UTC)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+          <td style="padding: 12px 14px; font-family: 'JetBrains Mono', monospace; color: var(--text-dim);">#{{ u.id }}</td>
+          <td style="padding: 12px 14px; font-weight: 600; color: var(--text-pure);">{{ u.name }}</td>
+          <td style="padding: 12px 14px; color: var(--text-main); font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">{{ u.email }}</td>
+          <td style="padding: 12px 14px;">
+            {% if u.role == 'admin' %}
+              <span class="pill" style="background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border-color: rgba(239, 68, 68, 0.3);">Admin</span>
+            {% else %}
+              <span class="pill" style="background: rgba(0, 229, 255, 0.1); color: var(--primary-cyan); border-color: var(--border-cyan);">Doctor</span>
+            {% endif %}
+          </td>
+          <td style="padding: 12px 14px; color: var(--text-dim); font-size: 12.5px;">{{ u.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

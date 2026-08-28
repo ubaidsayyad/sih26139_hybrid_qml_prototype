@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Global Inference Audit Log · Administrator Console{% endblock %}
+
+{% block content %}
+<section class="dash-header">
+  <div class="eyebrow" style="border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.08); color: #FCA5A5;">
+    <span>●</span>
+    <span>RESTRICTED · SYSTEM-WIDE INFERENCE AUDIT</span>
+  </div>
+  <h1>Global Prediction Audit Trail</h1>
+  <p class="lede">
+    Audit all single-patient and batch inferences executed across every practitioner and clinical account.
+  </p>
+</section>
+
+<!-- Filter Toolbar -->
+<div class="card" style="margin-bottom: 24px; padding: 18px 24px; border: 1px solid var(--border-glass);">
+  <form method="GET" action="{{ url_for('admin_all_history_page') }}" style="display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;">
+    <div style="flex: 1; min-width: 160px;">
+      <label for="doctor_id" style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">Practitioner</label>
+      <select id="doctor_id" name="doctor_id" style="width: 100%; padding: 9px 12px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 13.5px;">
+        <option value="" {% if not current_doctor_id %}selected{% endif %}>All Practitioners</option>
+        {% for doc in doctors %}
+          <option value="{{ doc.id }}" {% if current_doctor_id == doc.id|string %}selected{% endif %}>{{ doc.name }} ({{ doc.email }})</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="flex: 1; min-width: 160px;">
+      <label for="result" style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">Diagnosis Result</label>
+      <select id="result" name="result" style="width: 100%; padding: 9px 12px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 13.5px;">
+        <option value="" {% if not current_result %}selected{% endif %}>All Results</option>
+        <option value="Malignant" {% if current_result == 'Malignant' %}selected{% endif %}>Malignant</option>
+        <option value="Benign" {% if current_result == 'Benign' %}selected{% endif %}>Benign</option>
+      </select>
+    </div>
+
+    <div>
+      <button type="submit" class="btn-primary" style="padding: 9px 18px; font-size: 13.5px;">
+        <span>🔍</span> Filter
+      </button>
+      <a href="{{ url_for('admin_all_history_page') }}" class="pill" style="margin-left: 6px; padding: 9px 14px; text-decoration: none; font-size: 13px; border-color: rgba(255,255,255,0.12);">
+        Reset
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Global Records Table -->
+<section class="card wide" style="margin-bottom: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <div>
+      <div class="eyebrow" style="margin-bottom: 4px;">
+        <span>●</span>
+        <span>Cross-Account Inferences</span>
+      </div>
+      <h2 style="margin: 0;">Audited Predictions (Total: {{ pagination.total }})</h2>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <a href="{{ url_for('admin_page') }}" class="pill" style="text-decoration: none; border-color: var(--border-violet); color: #C4B5FD;">
+        ← Admin Console
+      </a>
+      <span class="pill" style="border-color: var(--border-cyan); color: var(--primary-cyan);">
+        Page {{ pagination.page }} of {{ pagination.pages or 1 }}
+      </span>
+    </div>
+  </div>
+
+  {% if pagination.items %}
+  <div style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border-glass); color: var(--text-dim); font-size: 12px; text-transform: uppercase;">
+          <th style="padding: 12px 14px;">ID</th>
+          <th style="padding: 12px 14px;">Practitioner</th>
+          <th style="padding: 12px 14px;">Timestamp (UTC)</th>
+          <th style="padding: 12px 14px;">Model</th>
+          <th style="padding: 12px 14px;">Prediction</th>
+          <th style="padding: 12px 14px;">Confidence</th>
+          <th style="padding: 12px 14px;">Ground Truth</th>
+          <th style="padding: 12px 14px; text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pred in pagination.items %}
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+          <td style="padding: 12px 14px; font-family: 'JetBrains Mono', monospace; color: var(--text-dim);">#{{ pred.id }}</td>
+          <td style="padding: 12px 14px;">
+            <div style="font-weight: 600; color: var(--text-pure);">{{ pred.user.name if pred.user else 'Unknown' }}</div>
+            <div style="font-size: 11.5px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">{{ pred.user.email if pred.user else '—' }}</div>
+          </td>
+          <td style="padding: 12px 14px; font-size: 12.5px; color: var(--text-dim);">{{ pred.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td style="padding: 12px 14px;">
+            {% if pred.model_used == 'both' %}
+              <span class="pill" style="padding: 2px 7px; font-size: 10.5px; background: rgba(0, 229, 255, 0.08); color: var(--primary-cyan); border-color: var(--border-cyan);">Dual (Q+C)</span>
+            {% else %}
+              <span class="pill" style="padding: 2px 7px; font-size: 10.5px;">{{ pred.model_used }}</span>
+            {% endif %}
+          </td>
+          <td style="padding: 12px 14px;">
+            {% if pred.prediction_result == 'Malignant' %}
+              <span class="badge badge-malignant" style="font-size: 11.5px; padding: 2px 7px;">Malignant</span>
+            {% else %}
+              <span class="badge badge-benign" style="font-size: 11.5px; padding: 2px 7px;">Benign</span>
+            {% endif %}
+          </td>
+          <td style="padding: 12px 14px; font-family: 'JetBrains Mono', monospace; font-size: 13px;">
+            {{ "%.1f"|format(pred.confidence * 100) }}%
+          </td>
+          <td style="padding: 12px 14px; font-size: 12.5px;">
+            {% if pred.true_label %}
+              {% if pred.is_correct %}
+                <span style="color: #34D399; font-weight: 600;">✓ {{ pred.true_label }}</span>
+              {% else %}
+                <span style="color: #F87171; font-weight: 600;">✗ {{ pred.true_label }}</span>
+              {% endif %}
+            {% else %}
+              <span style="color: var(--text-dim);">—</span>
+            {% endif %}
+          </td>
+          <td style="padding: 12px 14px; text-align: right;">
+            <a href="{{ url_for('history_detail', pred_id=pred.id) }}" class="pill" style="text-decoration: none; padding: 4px 10px; font-size: 12px; border-color: var(--border-cyan); color: var(--primary-cyan);">
+              View Report →
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination Bar -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-glass);">
+    <div>
+      {% if pagination.has_prev %}
+        <a href="{{ url_for('admin_all_history_page', page=pagination.prev_num, doctor_id=current_doctor_id, result=current_result) }}" class="btn-secondary" style="padding: 7px 14px; font-size: 13px; text-decoration: none;">
+          ← Previous
+        </a>
+      {% endif %}
+    </div>
+    <div style="font-size: 13px; color: var(--text-dim);">
+      Showing records {{ (pagination.page - 1) * pagination.per_page + 1 }} to {{ [(pagination.page * pagination.per_page), pagination.total]|min }} of {{ pagination.total }}
+    </div>
+    <div>
+      {% if pagination.has_next %}
+        <a href="{{ url_for('admin_all_history_page', page=pagination.next_num, doctor_id=current_doctor_id, result=current_result) }}" class="btn-secondary" style="padding: 7px 14px; font-size: 13px; text-decoration: none;">
+          Next →
+        </a>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div style="text-align: center; padding: 40px; color: var(--text-dim);">No inferences found matching criteria.</div>
+  {% endif %}
+</section>
+{% endblock %}

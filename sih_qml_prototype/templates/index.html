@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <div class="eyebrow">
+    <span>●</span>
+    <span>MedTech · BioTech · Quantum HealthTech</span>
+  </div>
+  <h1>Hybrid Quantum Machine Learning Platform<br><span style="background: linear-gradient(135deg, #00E5FF 0%, #8B5CF6 50%, #00F5D4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">for Early Disease Detection</span></h1>
+  <p class="lede">
+    Classical pre-processing feeds a hardware-efficient variational quantum classifier, benchmarked live
+    against classical baselines on the same data — with model-agnostic explainability and full
+    performance transparency, running end-to-end on a NISQ-friendly statevector simulator.
+  </p>
+
+  <form action="{{ url_for('run') }}" method="post" class="run-form" id="run-pipeline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div style="display: flex; gap: 18px; width: 100%; flex-wrap: wrap; align-items: center;">
+      
+      <!-- Quantum Execution Backend Selector -->
+      <div style="flex: 1; min-width: 260px;">
+        <label for="backend" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--primary-cyan);">
+          ⚛ Quantum Execution Backend
+        </label>
+        <select id="backend" name="backend" class="select-backend" onchange="toggleIbmTokenInput(this.value)">
+          <option value="simulator" {% if default_backend == 'simulator' %}selected{% endif %}>⚛ Local NumPy Simulator (Offline / Low Latency)</option>
+          <option value="qiskit_simulator" {% if default_backend == 'qiskit_simulator' %}selected{% endif %}>🧪 Qiskit Statevector Simulator (Qiskit 2.5)</option>
+          <option value="ibm_hardware" {% if default_backend == 'ibm_hardware' %}selected{% endif %}>🚀 IBM Quantum Hardware (Real Cloud QPU)</option>
+        </select>
+      </div>
+
+      <!-- Training Epochs Slider -->
+      <div style="flex: 1; min-width: 240px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label for="epochs" style="font-size: 13px; font-weight: 600; color: var(--text-main);">
+            ⚡ Variational Epochs
+          </label>
+          <span id="epochsVal">30</span>
+        </div>
+        <input type="range" id="epochs" name="epochs" min="10" max="80" value="30" oninput="document.getElementById('epochsVal').innerText=this.value" style="width: 100%;">
+      </div>
+
+    </div>
+
+    <!-- Collapsible IBM Token Field -->
+    <div id="ibm-token-wrap" style="display: {% if default_backend == 'ibm_hardware' %}block{% else %}none{% endif %}; width: 100%; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-subtle);">
+      <label for="ibm_token" style="display: block; font-size: 12.5px; font-weight: 600; color: #C4B5FD; margin-bottom: 4px;">
+        🔑 IBM Quantum API Token (or leave blank to use <code>IBM_QUANTUM_TOKEN</code> env var):
+      </label>
+      <input type="password" id="ibm_token" name="ibm_token" placeholder="Paste your 64-char IBM Quantum API token here..." class="input-token" style="width: 100%;">
+      <p style="font-size: 11.5px; color: var(--text-dim); margin: 4px 0 0;">
+        Get a free token at <a href="https://quantum.ibm.com/" target="_blank" style="color: var(--primary-cyan); text-decoration: underline;">quantum.ibm.com</a>
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 14px; width: 100%; margin-top: 16px; flex-wrap: wrap;">
+      <button type="submit" class="btn-primary" style="flex: 1; min-width: 260px;">
+        <span>▶</span> Run Full Hybrid Pipeline
+      </button>
+      {% if has_run %}
+      <a href="{{ url_for('dashboard') }}" class="btn-secondary">View Last Results →</a>
+      {% endif %}
+    </div>
+  </form>
+
+  <script>
+  function toggleIbmTokenInput(val) {
+    const wrap = document.getElementById('ibm-token-wrap');
+    if (wrap) {
+      wrap.style.display = (val === 'ibm_hardware') ? 'block' : 'none';
+    }
+  }
+  </script>
+</section>
+
+<section class="pipeline-diagram">
+  <h2>Quantum-Classical Hybrid Architecture</h2>
+  <div class="flow">
+    <div class="node">
+      Biomedical Data
+      <span>Tabular Ingestion (30D)</span>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node">
+      Classical Pipeline
+      <span>Scaling + PCA (30D → 4D)</span>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node quantum">
+      <strong>Angle Encoding</strong>
+      <span>RY(π·x) on 4 Qubits</span>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node quantum">
+      <strong>Variational VQC</strong>
+      <span>Param-Shift / RY-RZ-CNOT</span>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node">
+      Inference & XAI
+      <span>⟨Z⟩ Readout + Permutation XAI</span>
+    </div>
+  </div>
+  <p class="caption">
+    Trained with the analytic <strong>parameter-shift rule</strong> (the native quantum-circuit gradient,
+    not classical backprop) against a binary cross-entropy loss. Built on a zero-dependency NumPy statevector
+    simulator that is fully offline and provides a drop-in interface for Qiskit/PennyLane on physical quantum hardware.
+  </p>
+</section>
+
+<section class="grid-3">
+  <div class="card">
+    <h3>01 / Biomedical Data Ingestion</h3>
+    <p>
+      Breast Cancer Wisconsin (Diagnostic) benchmark — 569 patient profiles, 30 cellular morphological features.
+      The ingestion layer standardizes numerical distributions and feeds both classical and quantum branches.
+    </p>
+  </div>
+  <div class="card">
+    <h3>02 / Transparent Benchmarking</h3>
+    <p>
+      Classical models are evaluated both on the full 30-feature set <em>and</em> on the exact same
+      4 PCA features the quantum circuit sees — isolating whether the quantum ansatz creates genuine expressive value.
+    </p>
+  </div>
+  <div class="card">
+    <h3>03 / Model-Agnostic Explainability</h3>
+    <p>
+      Permutation feature importance (ΔAUC under stochastic shuffling) applied identically to the quantum circuit
+      and classical baselines, enabling clinicians to audit decision criteria without black-box opacity.
+    </p>
+  </div>
+</section>
+
+{% endblock %}
