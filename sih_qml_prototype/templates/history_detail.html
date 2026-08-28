@@ -93,7 +93,7 @@
     </div>
 
     <div class="confidence-bar-container" style="margin: 12px 0;">
-      <div class="confidence-bar-fill" style="width: {{ (pred.metadata_dict.get('classical_conf', 0.5) * 100)|round(1) }}%; background: linear-gradient(90deg, #6366F1, #C4B5FD);"></div>
+      <div class="confidence-bar-fill" style="width: {{ (pred.metadata_dict.get('classical_conf', 0.5) * 100)|round(1) }}%; background: linear-gradient(90deg, var(--accent-violet), #C4B5FD);"></div>
     </div>
 
     <div class="result-row">
@@ -141,7 +141,7 @@
   {% endif %}
 
   <div style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
-    <a href="{{ url_for('download_prediction_pdf', pred_id=pred.id) }}" class="btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #0284C7, #4F46E5);">
+    <a href="{{ url_for('download_prediction_pdf', pred_id=pred.id) }}" class="btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
       <span>📄</span> Download Report (PDF)
     </a>
     <a href="{{ url_for('history_page') }}" class="btn-secondary" style="text-decoration: none;">
