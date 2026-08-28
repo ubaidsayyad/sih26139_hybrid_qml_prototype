@@ -236,5 +236,85 @@ document.addEventListener('DOMContentLoaded', () => {
   start();
 })();
 </script>
+
+<script>
+// =============================================================================
+// Scroll Reveal & Parallax Motion Controller (Lightweight IntersectionObserver)
+// =============================================================================
+document.addEventListener('DOMContentLoaded', () => {
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // 1. Dynamic Frosted Navbar Transition
+  const nav = document.querySelector('.topnav');
+  if (nav) {
+    const handleNavScroll = () => {
+      if (window.scrollY > 25) {
+        nav.classList.add('nav-scrolled');
+      } else {
+        nav.classList.remove('nav-scrolled');
+      }
+    };
+    window.addEventListener('scroll', handleNavScroll, { passive: true });
+    handleNavScroll();
+  }
+
+  // 2. Subtle Parallax Effect for Quantum Background & Ambient Orbs
+  if (!prefersReducedMotion) {
+    const canvas = document.getElementById('bg-canvas');
+    const orb1 = document.querySelector('.bg-orb-1');
+    const orb2 = document.querySelector('.bg-orb-2');
+    const orb3 = document.querySelector('.bg-orb-3');
+    
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const sy = window.scrollY;
+          if (canvas) canvas.style.transform = `translate3d(0, ${sy * 0.10}px, 0)`;
+          if (orb1) orb1.style.transform = `translate3d(0, ${sy * 0.14}px, 0)`;
+          if (orb2) orb2.style.transform = `translate3d(0, ${sy * 0.08}px, 0)`;
+          if (orb3) orb3.style.transform = `translate3d(0, ${sy * 0.05}px, 0)`;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: true });
+  }
+
+  // 3. Staggered Card & Section Scroll Reveals
+  // Automatically tag grid items with sequential stagger classes
+  document.querySelectorAll('.grid-3, .grid-2, .patient-chips-wrap, .metrics-table-wrapper').forEach(container => {
+    Array.from(container.children).forEach((child, idx) => {
+      child.classList.add('reveal-on-scroll', `reveal-stagger-${Math.min(idx + 1, 5)}`);
+    });
+  });
+
+  // Tag standalone sections, cards, and architecture diagrams
+  document.querySelectorAll('.hero, .run-form, .pipeline-diagram, .flow, .card:not(.reveal-on-scroll), .results-card').forEach(el => {
+    el.classList.add('reveal-on-scroll');
+  });
+
+  const targets = document.querySelectorAll('.reveal-on-scroll');
+
+  if (prefersReducedMotion || !('IntersectionObserver' in window)) {
+    targets.forEach(el => el.classList.add('is-revealed'));
+    return;
+  }
+
+  const revealObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-revealed');
+        observer.unobserve(entry.target); // Reveal once per element
+      }
+    });
+  }, {
+    rootMargin: '0px 0px -40px 0px',
+    threshold: 0.06
+  });
+
+  targets.forEach(target => revealObserver.observe(target));
+});
+</script>
 </body>
 </html>
