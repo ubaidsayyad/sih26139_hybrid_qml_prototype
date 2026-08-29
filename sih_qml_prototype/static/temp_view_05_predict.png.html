@@ -407,31 +407,35 @@ h1 {
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: 14px;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
   cursor: pointer;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 0 20px rgba(0, 229, 255, 0.35);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.40);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 30px rgba(0, 229, 255, 0.65);
+  box-shadow: 0 0 32px rgba(0, 229, 255, 0.70), 0 4px 16px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(135deg, #33EBFF 0%, #00C7EC 100%);
   color: #070B14;
 }
 
 .btn-primary:active {
-  transform: translateY(0);
+  transform: scale(0.97) translateY(0);
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.45);
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(12, 18, 34, 0.85);
   color: var(--text-ice);
-  border: 1px solid var(--border-cyan);
+  border: 1px solid var(--border-glass);
   padding: 11px 22px;
   border-radius: var(--radius-sm);
   font-family: var(--font-heading);
@@ -443,15 +447,119 @@ h1 {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.2s ease;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .btn-secondary:hover {
   border-color: var(--primary-cyan);
-  background: rgba(0, 229, 255, 0.10);
-  color: var(--text-pure);
+  background: rgba(18, 28, 52, 0.95);
+  color: var(--primary-cyan);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.25);
   transform: translateY(-2px);
+}
+
+.btn-secondary:active {
+  transform: scale(0.97) translateY(0);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.15);
+}
+
+.btn-small {
+  padding: 6px 14px;
+  font-size: 12.5px;
+}
+
+/* Architecture Flow in Index */
+.pipeline-diagram {
+  margin: 48px 0;
+}
+
+.pipeline-diagram h2 {
+  font-size: 22px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.flow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  padding: 28px 24px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  overflow-x: auto;
+}
+
+.flow .node {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  padding: 14px 18px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 140px;
+  color: var(--text-ice);
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.flow .node:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-cyan);
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.20);
+}
+
+.flow .node.quantum {
+  border-color: rgba(0, 245, 212, 0.50);
+  background: linear-gradient(180deg, rgba(0, 245, 212, 0.12) 0%, rgba(139, 92, 246, 0.08) 100%);
+  color: var(--quantum-accent);
+  box-shadow: 0 0 16px rgba(0, 245, 212, 0.25);
+  animation: quantumNodePulse 3s infinite ease-in-out;
+}
+
+@keyframes quantumNodePulse {
+  0%, 100% {
+    box-shadow: 0 0 14px rgba(0, 245, 212, 0.20), inset 0 0 10px rgba(0, 245, 212, 0.05);
+    border-color: rgba(0, 245, 212, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 26px rgba(0, 245, 212, 0.50), inset 0 0 16px rgba(0, 245, 212, 0.15);
+    border-color: rgba(0, 245, 212, 0.80);
+    transform: translateY(-2px);
+  }
+}
+
+.flow .arrow {
+  color: var(--primary-cyan);
+  font-size: 18px;
+  font-weight: 800;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  text-shadow: 0 0 10px var(--primary-cyan);
+  animation: flowTravelingLight 2s infinite ease-in-out;
+}
+
+@keyframes flowTravelingLight {
+  0%, 100% {
+    opacity: 0.45;
+    transform: translateX(0);
+    text-shadow: 0 0 6px var(--primary-cyan);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(5px);
+    text-shadow: 0 0 16px var(--primary-cyan), 0 0 24px var(--quantum-teal);
+  }
 }
 
 /* ==========================================================================
@@ -1000,6 +1108,79 @@ footer {
 }
 
 /* ==========================================================================
+   Responsive Viewport Adaptations (375px Mobile to 1440px Desktop)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .topnav {
+    padding: 10px 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .nav-links {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    gap: 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .nav-links a {
+    white-space: nowrap;
+    font-size: 12.5px;
+    padding: 4px 8px;
+  }
+
+  .grid-2, .grid-3 {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  main {
+    padding: 24px 16px 60px;
+  }
+
+  h1 {
+    font-size: 28px !important;
+    letter-spacing: -0.02em;
+  }
+
+  .card {
+    padding: 20px 16px;
+  }
+
+  .run-form {
+    padding: 20px 16px;
+  }
+
+  .flow {
+    padding: 20px 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 24px !important;
+  }
+
+  .eyebrow {
+    font-size: 10.5px;
+    padding: 3px 10px;
+  }
+
+  .lede {
+    font-size: 14px;
+  }
+
+  .btn-primary, .btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ==========================================================================
    Accessibility: prefers-reduced-motion
    ========================================================================== */
 
@@ -1026,9 +1207,9 @@ footer {
     transition: none !important;
   }
 
-  .q-pulse {
+  .q-pulse, .flow .node.quantum, .flow .arrow {
     animation: none !important;
-    opacity: 0.8 !important;
+    opacity: 0.9 !important;
   }
 }
 
@@ -1041,7 +1222,7 @@ footer {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Quantum Diagnostics · SIH26139</title>
 <meta name="description" content="Hybrid Quantum-Classical Machine Learning Platform for Early Disease Detection using Variational Quantum Classifiers (VQC) and parameter-shift gradients.">
-<meta name="csrf-token" content="IjQzOGEwMTczNTQ1NTRlMjAwNGRkY2NiODU4MDVlNWEyNTA2N2Q0NjUi.apHcXg.WDVvE5COM74uZt9ZpfwpbDLRQpI">
+<meta name="csrf-token" content="IjhiZDQ3YzJlOTlmODU5ZWY5YTA2YTM2Y2ZmYTUxZDMxYjdjYjZiOTUi.apJ4Qw.Uo6VBzgkZhAfpBnF6H-Isf7Lmno">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23070B14'/><circle cx='50' cy='50' r='36' stroke='%2300E5FF' stroke-width='4' fill='none'/><ellipse cx='50' cy='50' rx='42' ry='15' stroke='%238B5CF6' stroke-width='3' fill='none' transform='rotate(35 50 50)'/><ellipse cx='50' cy='50' rx='42' ry='15' stroke='%2300F5D4' stroke-width='3' fill='none' transform='rotate(-35 50 50)'/><circle cx='50' cy='50' r='8' fill='%2300E5FF'/></svg>">
 
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

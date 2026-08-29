@@ -260,38 +260,4 @@
   </a>
 </div>
 
-<script>
-// Animate metric numbers counting up on load
-document.addEventListener('DOMContentLoaded', () => {
-  const counters = document.querySelectorAll('.count-num');
-  const duration = 1200; // ms
-  const startTime = performance.now();
-
-  counters.forEach(counter => {
-    const target = parseFloat(counter.getAttribute('data-target'));
-    if (isNaN(target)) return;
-    const decimals = parseInt(counter.getAttribute('data-decimals') || '1', 10);
-    const suffix = counter.getAttribute('data-suffix') || '';
-
-    function updateCount(now) {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      // Ease out cubic
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
-      const currentVal = target * easeProgress;
-
-      counter.innerText = currentVal.toFixed(decimals) + suffix;
-
-      if (progress < 1) {
-        requestAnimationFrame(updateCount);
-      } else {
-        counter.innerText = target.toFixed(decimals) + suffix;
-      }
-    }
-
-    requestAnimationFrame(updateCount);
-  });
-});
-</script>
-
 {% endblock %}
