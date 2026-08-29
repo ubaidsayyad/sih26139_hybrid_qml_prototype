@@ -73,11 +73,11 @@
     <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">
       Your Personal Secret API Key:
     </label>
-    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; width: 100%;">
       <input type="text" id="api-key-input" readonly value="{{ current_user.api_key or 'Key not generated' }}"
-             style="flex: 1; min-width: 320px; padding: 11px 16px; background: rgba(11, 18, 32, 0.9); border: 1px solid var(--border-cyan); border-radius: var(--radius-sm); font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--quantum-teal); outline: none;">
+             style="flex: 1; min-width: 0; width: 100%; padding: 11px 14px; background: rgba(11, 18, 32, 0.9); border: 1px solid var(--border-cyan); border-radius: var(--radius-sm); font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--quantum-teal); outline: none; word-break: break-all;">
       
-      <button type="button" onclick="copyApiKey()" class="btn-secondary" style="padding: 10px 18px; display: inline-flex; align-items: center; gap: 6px;">
+      <button type="button" onclick="copyApiKey()" class="btn-secondary" style="padding: 10px 18px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;">
         <span id="copy-icon">📋</span> <span id="copy-text">Copy Key</span>
       </button>
     </div>

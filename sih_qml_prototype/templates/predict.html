@@ -17,13 +17,23 @@
   <h2>⚡ Patient Selection & Inference Controls</h2>
   
   <!-- Quick Patient Preset Chips -->
-  <div class="patient-chips-wrap" style="margin: 14px 0 18px;">
-    <span style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-right: 8px;">Quick Presets:</span>
-    <button type="button" class="patient-chip" onclick="setAndPredict(0)">Patient #0 (Malignant)</button>
-    <button type="button" class="patient-chip" onclick="setAndPredict(3)">Patient #3 (Malignant)</button>
-    <button type="button" class="patient-chip" onclick="setAndPredict(12)">Patient #12 (Benign)</button>
-    <button type="button" class="patient-chip" onclick="setAndPredict(42)">Patient #42 (Benign)</button>
-    <button type="button" class="patient-chip highlight" onclick="randomPredict()">🎲 Random Sample</button>
+  <div class="patient-chips-wrap">
+    <span class="patient-chips-label">Quick Presets:</span>
+    <button type="button" class="patient-chip malignant is-active" data-idx="0" onclick="setAndPredict(0, this)">
+      <span class="chip-dot"></span> Patient #0 (Malignant)
+    </button>
+    <button type="button" class="patient-chip malignant" data-idx="3" onclick="setAndPredict(3, this)">
+      <span class="chip-dot"></span> Patient #3 (Malignant)
+    </button>
+    <button type="button" class="patient-chip benign" data-idx="12" onclick="setAndPredict(12, this)">
+      <span class="chip-dot"></span> Patient #12 (Benign)
+    </button>
+    <button type="button" class="patient-chip benign" data-idx="42" onclick="setAndPredict(42, this)">
+      <span class="chip-dot"></span> Patient #42 (Benign)
+    </button>
+    <button type="button" class="patient-chip random" id="btn-random-chip" onclick="randomPredict(this)">
+      <span>🎲</span> Random Sample
+    </button>
   </div>
 
   <div class="predict-controls">
@@ -230,8 +240,26 @@ async function callPredict(idx) {
   }
 }
 
-function setAndPredict(idx) {
+function updateActivePresetChip(idx) {
+  document.querySelectorAll('.patient-chip').forEach(el => {
+    if (el.dataset && el.dataset.idx !== undefined) {
+      if (parseInt(el.dataset.idx, 10) === parseInt(idx, 10)) {
+        el.classList.add('is-active');
+      } else {
+        el.classList.remove('is-active');
+      }
+    }
+  });
+}
+
+function setAndPredict(idx, btnEl) {
   document.getElementById('idx').value = idx;
+  document.querySelectorAll('.patient-chip').forEach(el => el.classList.remove('is-active'));
+  if (btnEl) {
+    btnEl.classList.add('is-active');
+  } else {
+    updateActivePresetChip(idx);
+  }
   callPredict(idx);
 }
 
@@ -244,12 +272,22 @@ function runPredict() {
     }
     return;
   }
+  document.querySelectorAll('.patient-chip').forEach(el => el.classList.remove('is-active'));
+  updateActivePresetChip(idx);
   callPredict(idx);
 }
 
-function randomPredict() {
+function randomPredict(btnEl) {
   const randIdx = Math.floor(Math.random() * MAX_TEST_SAMPLES);
-  setAndPredict(randIdx);
+  document.getElementById('idx').value = randIdx;
+  document.querySelectorAll('.patient-chip').forEach(el => el.classList.remove('is-active'));
+  if (btnEl) {
+    btnEl.classList.add('is-active');
+  } else {
+    const rBtn = document.getElementById('btn-random-chip');
+    if (rBtn) rBtn.classList.add('is-active');
+  }
+  callPredict(randIdx);
 }
 
 // Auto-run patient 0 on initial visit

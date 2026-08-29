@@ -46,7 +46,7 @@ def metric_comparison_chart(results, out_path):
     aucs = [results[k]["auc"] * 100 for k in keys]
     colors = [CLASSICAL, CLASSICAL, CLASSICAL, QUANTUM]
 
-    fig, ax = plt.subplots(figsize=(7.5, 4.2), dpi=150, facecolor=BG)
+    fig, ax = plt.subplots(figsize=(7.0, 3.8), dpi=140, facecolor=BG)
     x = np.arange(len(labels))
     w = 0.32
     b1 = ax.bar(x - w / 2, accs, width=w, label="Accuracy", color=colors, alpha=0.9, edgecolor="none")
@@ -64,19 +64,19 @@ def metric_comparison_chart(results, out_path):
         ax.text(i + w / 2, u + 1.2, f"{u:.1f}%", ha="center", fontsize=8, color=c, alpha=0.9)
         
     ax.set_xticks(x)
-    ax.set_xticklabels(labels, fontsize=9, color=TEXT_MAIN)
+    ax.set_xticklabels(labels, fontsize=8.5, color=TEXT_MAIN)
     ax.set_ylim(0, 112)
-    ax.set_ylabel("Score (%)", fontsize=9.5)
+    ax.set_ylabel("Score (%)", fontsize=9)
     _style(ax, "Classical Baselines vs Hybrid Quantum Model (Held-out Test Set)")
     
-    leg = ax.legend(frameon=True, facecolor=CARD_BG, edgecolor=GRID, loc="lower right", labelcolor=TEXT_MAIN, fontsize=8.5)
+    leg = ax.legend(frameon=True, facecolor=CARD_BG, edgecolor=GRID, loc="lower right", labelcolor=TEXT_MAIN, fontsize=8)
     fig.tight_layout()
-    fig.savefig(out_path, facecolor=BG, edgecolor="none")
+    fig.savefig(out_path, facecolor=BG, edgecolor="none", bbox_inches="tight")
     plt.close(fig)
 
 
 def training_loss_chart(loss_history, out_path):
-    fig, ax = plt.subplots(figsize=(7.5, 3.2), dpi=150, facecolor=BG)
+    fig, ax = plt.subplots(figsize=(6.2, 3.4), dpi=140, facecolor=BG)
     epochs_range = range(1, len(loss_history) + 1)
     ax.plot(epochs_range, loss_history, color=QUANTUM, linewidth=2.2, label="BCE Loss")
     ax.fill_between(epochs_range, loss_history, alpha=0.15, color=QUANTUM)
@@ -85,18 +85,18 @@ def training_loss_chart(loss_history, out_path):
     if len(loss_history) <= 30:
         ax.scatter(epochs_range, loss_history, color=QUANTUM_ALT, s=18, zorder=5)
         
-    ax.set_xlabel("Epoch", fontsize=9.5)
-    ax.set_ylabel("Binary Cross-Entropy Loss", fontsize=9.5)
+    ax.set_xlabel("Epoch", fontsize=9)
+    ax.set_ylabel("Binary Cross-Entropy Loss", fontsize=9)
     _style(ax, "Quantum Circuit Convergence (Parameter-Shift Gradients)")
     fig.tight_layout()
-    fig.savefig(out_path, facecolor=BG, edgecolor="none")
+    fig.savefig(out_path, facecolor=BG, edgecolor="none", bbox_inches="tight")
     plt.close(fig)
 
 
 def importance_chart(importances, title, color, out_path):
     feats = [d["feature"] for d in importances]
     vals = [d["importance"] for d in importances]
-    fig, ax = plt.subplots(figsize=(6, 3), dpi=150, facecolor=BG)
+    fig, ax = plt.subplots(figsize=(5.4, 3.2), dpi=140, facecolor=BG)
     bars = ax.barh(feats, vals, color=color, alpha=0.85, height=0.55)
     
     # Add subtle border to bars
@@ -105,18 +105,18 @@ def importance_chart(importances, title, color, out_path):
         bar.set_linewidth(1.0)
         
     ax.invert_yaxis()
-    ax.set_xlabel("Importance (ΔAUC when feature is shuffled)", fontsize=9)
+    ax.set_xlabel("Importance (ΔAUC when feature is shuffled)", fontsize=8.5)
     _style(ax, title)
-    ax.tick_params(colors=TEXT_MAIN, labelsize=9)
+    ax.tick_params(colors=TEXT_MAIN, labelsize=8.5)
     fig.tight_layout()
-    fig.savefig(out_path, facecolor=BG, edgecolor="none")
+    fig.savefig(out_path, facecolor=BG, edgecolor="none", bbox_inches="tight")
     plt.close(fig)
 
 
 def shap_importance_chart(importances, title, color, out_path):
     feats = [d["feature"] for d in importances]
     vals = [d["importance"] for d in importances]
-    fig, ax = plt.subplots(figsize=(6, 3), dpi=150, facecolor=BG)
+    fig, ax = plt.subplots(figsize=(5.4, 3.2), dpi=140, facecolor=BG)
     bars = ax.barh(feats, vals, color=color, alpha=0.85, height=0.55)
     
     for bar in bars:
@@ -124,18 +124,17 @@ def shap_importance_chart(importances, title, color, out_path):
         bar.set_linewidth(1.0)
         
     ax.invert_yaxis()
-    ax.set_xlabel("Mean |SHAP value| (Feature Attribution Magnitude)", fontsize=9)
+    ax.set_xlabel("Mean |SHAP value| (Feature Attribution Magnitude)", fontsize=8.5)
     _style(ax, title)
-    ax.tick_params(colors=TEXT_MAIN, labelsize=9)
+    ax.tick_params(colors=TEXT_MAIN, labelsize=8.5)
     fig.tight_layout()
-    fig.savefig(out_path, facecolor=BG, edgecolor="none")
+    fig.savefig(out_path, facecolor=BG, edgecolor="none", bbox_inches="tight")
     plt.close(fig)
-
 
 
 def roc_chart(y_test, proba_dict, out_path):
     """proba_dict: {label: (y_true, y_proba)}"""
-    fig, ax = plt.subplots(figsize=(5.5, 5.2), dpi=150, facecolor=BG)
+    fig, ax = plt.subplots(figsize=(5.2, 4.4), dpi=140, facecolor=BG)
     colors = {"Hybrid VQC": QUANTUM, "Logistic Regression": PRIMARY}
     
     for label, (yt, yp) in proba_dict.items():
@@ -144,10 +143,10 @@ def roc_chart(y_test, proba_dict, out_path):
         ax.plot(fpr, tpr, label=label, linewidth=2.2, color=c)
         
     ax.plot([0, 1], [0, 1], "--", color=GRID, linewidth=1.2, label="Chance level (AUC=0.5)")
-    ax.set_xlabel("False Positive Rate", fontsize=9.5)
-    ax.set_ylabel("True Positive Rate", fontsize=9.5)
+    ax.set_xlabel("False Positive Rate", fontsize=9)
+    ax.set_ylabel("True Positive Rate", fontsize=9)
     _style(ax, "Receiver Operating Characteristic (ROC)")
-    ax.legend(frameon=True, facecolor=CARD_BG, edgecolor=GRID, loc="lower right", labelcolor=TEXT_MAIN, fontsize=8.5)
+    ax.legend(frameon=True, facecolor=CARD_BG, edgecolor=GRID, loc="lower right", labelcolor=TEXT_MAIN, fontsize=8)
     fig.tight_layout()
-    fig.savefig(out_path, facecolor=BG, edgecolor="none")
+    fig.savefig(out_path, facecolor=BG, edgecolor="none", bbox_inches="tight")
     plt.close(fig)
