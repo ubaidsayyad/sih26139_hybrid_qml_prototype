@@ -216,11 +216,29 @@ def _pipeline_worker(epochs, quantum_backend="simulator", ibm_token=None):
             JOB["logs"].append(f"[{time.strftime('%H:%M:%S')}] Execution finished successfully on {backend_display}.")
 
     except Exception as e:
+        import traceback
+        print(f"\n[PIPELINE WORKER ERROR] Background training exception encountered:\n{traceback.format_exc()}", flush=True)
         with JOB_LOCK:
             JOB["status"] = "error"
             JOB["error"] = str(e)
             JOB["message"] = f"Pipeline execution failed: {str(e)}"
-            JOB["logs"].append(f"[{time.strftime('%H:%M:%S')}] ERROR: {str(e)}")
+            JOB["logs"].append(f"[{time.strftime('%H:%M:%S')}] FATAL ERROR: {str(e)}")
+
+
+# ------------------------------------------------------------------------------
+# System Health & Uptime
+# ------------------------------------------------------------------------------
+
+@app.route("/health", methods=["GET"])
+def health_check():
+    """Instant top-level server health and liveness check."""
+    return jsonify({
+        "status": "ok",
+        "service": "sih26139-hybrid-qml-platform",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "training_status": JOB.get("status", "idle"),
+        "active_backend": JOB.get("backend_display", "Local NumPy Simulator (Offline)")
+    }), 200
 
 
 # ------------------------------------------------------------------------------

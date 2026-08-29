@@ -104,16 +104,25 @@ python -m pip install -r requirements.txt
 ```
 
 ### 2. Running the Web Platform
+
+#### Recommended for Live Demos & Production Presentations (Waitress WSGI):
+```bash
+python run_server.py
+```
+*Starts the multi-threaded Waitress WSGI production server on `http://localhost:5000` (8 worker threads, immune to file-write auto-reloader restarts, highly stable under background quantum training).*
+
+#### For Local Code Development Only:
 ```bash
 python app.py
 ```
+
 Open **[http://localhost:5000](http://localhost:5000)** in your browser.
 
 ### 3. Running the Automated Test Suite
 ```bash
 python -m pytest -v tests/
 ```
-*(All 18 tests pass across data pipelines, classical models, quantum circuits, explainability, batch upload, and Qiskit backends)*
+*(All 48 tests pass across data pipelines, classical baselines, quantum circuits, explainability, batch upload, authentication, PDF generation, REST API v1, and Qiskit backends)*
 
 ---
 

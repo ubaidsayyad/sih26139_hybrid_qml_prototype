@@ -115,21 +115,101 @@ class VariationalQuantumCircuit:
             state = _apply_cnot(state, q, (q + 1) % self.n_qubits, self.n_qubits)
         return state
 
+    def forward_batch(self, X, params=None):
+        """Run the circuit in a vectorized batch for inputs X of shape (B, n_qubits).
+        Returns an array of scores in [-1, 1] (average <Z> over all qubits per sample)."""
+        if params is None:
+            params = self.params
+        X = np.asarray(X)
+        if X.ndim == 1:
+            X = X.reshape(1, -1)
+        B = len(X)
+        n_q = self.n_qubits
+
+        # Initialize state tensor: shape (B, 2, 2, 2, 2)
+        state = np.zeros((B,) + (2,) * n_q, dtype=complex)
+        state[:, 0, 0, 0, 0] = 1.0
+
+        # Encoding: RY(pi * X[:, q])
+        for q in range(n_q):
+            thetas = np.pi * X[:, q]
+            c = np.cos(thetas / 2.0)
+            s = np.sin(thetas / 2.0)
+            c_exp = c.reshape((B,) + (1,) * (n_q - 1))
+            s_exp = s.reshape((B,) + (1,) * (n_q - 1))
+
+            idx0 = [slice(None)] * (n_q + 1)
+            idx0[q + 1] = 0
+            idx1 = [slice(None)] * (n_q + 1)
+            idx1[q + 1] = 1
+
+            s0 = state[tuple(idx0)].copy()
+            s1 = state[tuple(idx1)].copy()
+            state[tuple(idx0)] = c_exp * s0 - s_exp * s1
+            state[tuple(idx1)] = s_exp * s0 + c_exp * s1
+
+        # Variational layers
+        for layer in range(self.n_layers):
+            for q in range(n_q):
+                theta_y, theta_z = params[layer, q]
+                # RY(theta_y)
+                cy, sy = np.cos(theta_y / 2.0), np.sin(theta_y / 2.0)
+                idx0 = [slice(None)] * (n_q + 1)
+                idx0[q + 1] = 0
+                idx1 = [slice(None)] * (n_q + 1)
+                idx1[q + 1] = 1
+
+                s0 = state[tuple(idx0)].copy()
+                s1 = state[tuple(idx1)].copy()
+                state[tuple(idx0)] = cy * s0 - sy * s1
+                state[tuple(idx1)] = sy * s0 + cy * s1
+
+                # RZ(theta_z)
+                ez0 = np.exp(-1j * theta_z / 2.0)
+                ez1 = np.exp(1j * theta_z / 2.0)
+                state[tuple(idx0)] *= ez0
+                state[tuple(idx1)] *= ez1
+
+            # Ring entanglement CNOT: q -> (q+1)%n_q
+            for q in range(n_q):
+                target = (q + 1) % n_q
+                idx_c1 = [slice(None)] * (n_q + 1)
+                idx_c1[q + 1] = 1
+                idx_t0 = list(idx_c1)
+                idx_t0[target + 1] = 0
+                idx_t1 = list(idx_c1)
+                idx_t1[target + 1] = 1
+
+                temp = state[tuple(idx_t0)].copy()
+                state[tuple(idx_t0)] = state[tuple(idx_t1)]
+                state[tuple(idx_t1)] = temp
+
+        # Average Pauli-Z expectation <Z> across qubits per sample
+        z_sum = np.zeros(B)
+        reduce_axes = tuple(range(1, n_q))
+        for q in range(n_q):
+            idx0 = [slice(None)] * (n_q + 1)
+            idx0[q + 1] = 0
+            idx1 = [slice(None)] * (n_q + 1)
+            idx1[q + 1] = 1
+            p0 = np.sum(np.abs(state[tuple(idx0)]) ** 2, axis=reduce_axes)
+            p1 = np.sum(np.abs(state[tuple(idx1)]) ** 2, axis=reduce_axes)
+            z_sum += (p0 - p1)
+
+        scores = z_sum / n_q
+        return scores
+
     def forward(self, x, params=None):
         """Run the circuit for one input sample x (length n_qubits, values in [-1,1]).
         Returns a score in [-1, 1] (average <Z> over all qubits)."""
-        if params is None:
-            params = self.params
-        state = self._initial_state()
-        state = self._encode(state, x)
-        for layer in range(self.n_layers):
-            state = self._variational_layer(state, params[layer])
-        z_vals = [_expectation_z(state, q, self.n_qubits) for q in range(self.n_qubits)]
-        return float(np.mean(z_vals))
+        x_arr = np.asarray(x)
+        if x_arr.ndim == 1:
+            return float(self.forward_batch(x_arr.reshape(1, -1), params)[0])
+        return self.forward_batch(x_arr, params)
 
     def predict_proba(self, X, params=None):
         """Map circuit output in [-1,1] to a probability in [0,1]."""
-        scores = np.array([self.forward(x, params) for x in X])
+        scores = self.forward_batch(X, params)
         return (scores + 1.0) / 2.0
 
     # -----------------------------------------------------------------
@@ -150,7 +230,7 @@ class VariationalQuantumCircuit:
         """Compute the gradient of the BCE loss w.r.t every circuit parameter
         using the analytic parameter-shift rule: dE/dtheta = [E(theta+pi/2) - E(theta-pi/2)] / 2
         """
-        shift = np.pi / 2
+        shift = np.pi / 2.0
         grad = np.zeros_like(self.params)
         base_probs = self.predict_proba(X)
         dL_dprob = (base_probs - y) / (base_probs * (1 - base_probs) + 1e-7) / len(y)
@@ -163,10 +243,10 @@ class VariationalQuantumCircuit:
             params_minus = self.params.copy()
             params_minus[idx] -= shift
 
-            scores_plus = np.array([self.forward(x, params_plus) for x in X])
-            scores_minus = np.array([self.forward(x, params_minus) for x in X])
-            probs_plus = (scores_plus + 1) / 2
-            probs_minus = (scores_minus + 1) / 2
+            scores_plus = self.forward_batch(X, params_plus)
+            scores_minus = self.forward_batch(X, params_minus)
+            probs_plus = (scores_plus + 1.0) / 2.0
+            probs_minus = (scores_minus + 1.0) / 2.0
 
             dprob_dtheta = (probs_plus - probs_minus) / 2.0
             grad[idx] = np.sum(dL_dprob * dprob_dtheta)

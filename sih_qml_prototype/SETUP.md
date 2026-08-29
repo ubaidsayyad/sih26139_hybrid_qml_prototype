@@ -83,17 +83,31 @@ This installs:
 
 ## ⚛️ Step 5: Run the Application
 
-Launch the Flask server:
+### Option A: For Live Demonstrations & Production Testing (Recommended)
+Launch the multi-threaded Waitress WSGI server:
 
 ```powershell
-python app.py
+python run_server.py
 ```
 
 You will see output similar to:
 ```
- * Serving Flask app 'app'
- * Debug mode: on
- * Running on http://127.0.0.1:5000 (Press CTRL+C to quit)
+========================================================================
+  HYBRID QUANTUM-CLASSICAL MACHINE LEARNING PLATFORM (SIH26139)
+  Production WSGI Server (Waitress) · Multi-Threaded Engine
+========================================================================
+  * Host Binding:      0.0.0.0:5000
+  * Local Web URL:     http://localhost:5000
+  * Worker Threads:    8 concurrent request workers
+  * Debug / Reloader:  DISABLED (Immune to file write restart loop)
+  * System Health:     http://localhost:5000/health
+========================================================================
+  Server is READY for live demonstration and high-concurrency requests.
+```
+
+### Option B: For Local Code Development Only
+```powershell
+python app.py
 ```
 
 Now open your web browser and go to:
