@@ -28,6 +28,7 @@
   </a>
   <div class="nav-links">
     <a href="{{ url_for('index') }}">Overview</a>
+    <a href="{{ url_for('about_page') }}">About Us</a>
     {% if current_user.is_authenticated %}
       <a href="{{ url_for('dashboard') }}">Dashboard</a>
       <a href="{{ url_for('predict_page') }}">Try it</a>

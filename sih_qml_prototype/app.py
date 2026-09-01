@@ -346,6 +346,11 @@ def index():
     )
 
 
+@app.route("/about")
+def about_page():
+    return render_template("about.html")
+
+
 @app.route("/run", methods=["POST"])
 @login_required
 def run():
