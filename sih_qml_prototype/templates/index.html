@@ -200,4 +200,111 @@
   </div>
 </section>
 
+<!-- Team Platinum / About Us Section -->
+<section class="team-section reveal-on-scroll" id="team">
+  <div class="team-header">
+    <div class="eyebrow" style="margin-bottom: 12px;">
+      <span>👥</span>
+      <span>Engineers & Researchers</span>
+    </div>
+    <h2 class="team-title">
+      <span class="gradient-headline">TEAM PLATINUM</span>
+    </h2>
+    <p class="team-subtitle">The team behind this platform.</p>
+  </div>
+
+  <!-- Row 1: Team Leader Centered, flanked by 2 members -->
+  <div class="team-grid team-row-1">
+    <!-- Left: Ubaid Sayyad -->
+    <div class="card team-card reveal-on-scroll reveal-stagger-1">
+      <div class="team-photo-wrap">
+        <img src="{{ url_for('static', filename='team/Ubaid.png') }}" alt="Ubaid Sayyad" class="team-photo">
+      </div>
+      <h3 class="team-name">Ubaid Sayyad</h3>
+      <div class="team-role-tag">Backend & Database</div>
+      <p class="team-bio">Backend & database — built the authentication system, patient history storage, and REST API layer.</p>
+      <div class="team-meta">
+        <span class="team-roll"><span class="meta-label">Roll:</span> IT25064</span>
+        <span class="team-branch">Information Technology</span>
+      </div>
+    </div>
+
+    <!-- Center: Pranjal Madkam (Team Leader) -->
+    <div class="card team-card team-leader-card reveal-on-scroll reveal-stagger-2">
+      <div class="team-leader-badge-wrap">
+        <span class="team-leader-badge">★ Team Leader</span>
+      </div>
+      <div class="team-photo-wrap team-photo-leader-wrap">
+        <img src="{{ url_for('static', filename='team/Pranjal.jpeg') }}" alt="Pranjal Madkam" class="team-photo team-photo-leader">
+      </div>
+      <h3 class="team-name team-leader-name">Pranjal Madkam</h3>
+      <div class="team-role-tag team-leader-role-tag">Team Lead & Architecture</div>
+      <p class="team-bio">Team Lead — overall architecture, quantum circuit design, and end-to-end pipeline integration.</p>
+      <div class="team-meta">
+        <span class="team-roll"><span class="meta-label">Roll:</span> IT25015</span>
+        <span class="team-branch">Information Technology</span>
+      </div>
+    </div>
+
+    <!-- Right: Saloni Bopche -->
+    <div class="card team-card reveal-on-scroll reveal-stagger-3">
+      <div class="team-photo-wrap">
+        <img src="{{ url_for('static', filename='team/Saloni.jpeg') }}" alt="Saloni Bopche" class="team-photo">
+      </div>
+      <h3 class="team-name">Saloni Bopche</h3>
+      <div class="team-role-tag">Frontend & UI</div>
+      <p class="team-bio">Frontend & UI — designed the dashboard experience, charts, and interactive prediction interface.</p>
+      <div class="team-meta">
+        <span class="team-roll"><span class="meta-label">Roll:</span> IT25019</span>
+        <span class="team-branch">Information Technology</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: 3 members equal size -->
+  <div class="team-grid team-row-2">
+    <!-- Sheshandri Lajurkar -->
+    <div class="card team-card reveal-on-scroll reveal-stagger-1">
+      <div class="team-photo-wrap">
+        <img src="{{ url_for('static', filename='team/Sheshandri.jpeg') }}" alt="Sheshandri Lajurkar" class="team-photo">
+      </div>
+      <h3 class="team-name">Sheshandri Lajurkar</h3>
+      <div class="team-role-tag">Machine Learning</div>
+      <p class="team-bio">Machine learning — worked on classical baselines, benchmarking, and model evaluation.</p>
+      <div class="team-meta">
+        <span class="team-roll"><span class="meta-label">Roll:</span> CS25038</span>
+        <span class="team-branch">Computer Science (AIML)</span>
+      </div>
+    </div>
+
+    <!-- Roshani Tijare -->
+    <div class="card team-card reveal-on-scroll reveal-stagger-2">
+      <div class="team-photo-wrap">
+        <img src="{{ url_for('static', filename='team/Roshani.jpeg') }}" alt="Roshani Tijare" class="team-photo">
+      </div>
+      <h3 class="team-name">Roshani Tijare</h3>
+      <div class="team-role-tag">Explainability & Data</div>
+      <p class="team-bio">Explainability & data — implemented feature-importance analysis and dataset preprocessing.</p>
+      <div class="team-meta">
+        <span class="team-roll"><span class="meta-label">Roll:</span> CS25043</span>
+        <span class="team-branch">Computer Science (AIML)</span>
+      </div>
+    </div>
+
+    <!-- Anshu Ambule -->
+    <div class="card team-card reveal-on-scroll reveal-stagger-3">
+      <div class="team-photo-wrap">
+        <img src="{{ url_for('static', filename='team/Anshu.jpeg') }}" alt="Anshu Ambule" class="team-photo">
+      </div>
+      <h3 class="team-name">Anshu Ambule</h3>
+      <div class="team-role-tag">Testing & Documentation</div>
+      <p class="team-bio">Testing & documentation — wrote the test suite and authored the setup and demo guides.</p>
+      <div class="team-meta">
+        <span class="team-roll"><span class="meta-label">Roll:</span> CT25058</span>
+        <span class="team-branch">Computer Technology</span>
+      </div>
+    </div>
+  </div>
+</section>
+
 {% endblock %}

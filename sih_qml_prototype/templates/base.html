@@ -283,14 +283,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 3. Staggered Card & Section Scroll Reveals
   // Automatically tag grid items with sequential stagger classes
-  document.querySelectorAll('.grid-3, .grid-2, .patient-chips-wrap, .metrics-table-wrapper').forEach(container => {
+  document.querySelectorAll('.grid-3, .grid-2, .patient-chips-wrap, .metrics-table-wrapper, .team-grid').forEach(container => {
     Array.from(container.children).forEach((child, idx) => {
       child.classList.add('reveal-on-scroll', `reveal-stagger-${Math.min(idx + 1, 5)}`);
     });
   });
 
   // Tag standalone sections, cards, and architecture diagrams
-  document.querySelectorAll('.hero, .run-form, .pipeline-diagram, .flow, .card:not(.reveal-on-scroll), .results-card').forEach(el => {
+  document.querySelectorAll('.hero, .run-form, .pipeline-diagram, .flow, .card:not(.reveal-on-scroll), .results-card, .team-section').forEach(el => {
     el.classList.add('reveal-on-scroll');
   });
 
