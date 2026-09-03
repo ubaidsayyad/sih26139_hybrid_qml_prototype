@@ -80,6 +80,80 @@
   Made with ❤️ by Team Platinum · Hybrid Quantum-Classical ML Platform — SIH26139 · Egreen Quanta
 </footer>
 
+<!-- Floating AI Assistant Chat Widget -->
+<div id="platform-assistant-widget" class="assistant-widget">
+  <!-- Launcher Button -->
+  <button id="assistant-toggle-btn" class="assistant-toggle-btn" aria-label="Open Platform Assistant" title="Open HybridQML Assistant" aria-expanded="false">
+    <div class="assistant-btn-icon-wrap">
+      <svg class="assistant-icon-open" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        <circle cx="9" cy="10" r="1" fill="currentColor"></circle>
+        <circle cx="12" cy="10" r="1" fill="currentColor"></circle>
+        <circle cx="15" cy="10" r="1" fill="currentColor"></circle>
+      </svg>
+      <svg class="assistant-icon-close" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </div>
+    <span class="assistant-pulse-ring"></span>
+  </button>
+
+  <!-- Expanded Chat Panel -->
+  <div id="assistant-panel" class="assistant-panel" role="dialog" aria-modal="true" aria-hidden="true">
+    <!-- Header -->
+    <div class="assistant-header">
+      <div class="assistant-header-info">
+        <div class="assistant-avatar">
+          <span>⚛️</span>
+        </div>
+        <div>
+          <div class="assistant-title">Platform Assistant</div>
+          <div class="assistant-status">
+            <span class="status-dot"></span>
+            <span>Online · Rule-Based Q&amp;A</span>
+          </div>
+        </div>
+      </div>
+      <button id="assistant-close-btn" class="assistant-close-btn" aria-label="Close Assistant">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Messages Container -->
+    <div id="assistant-messages" class="assistant-messages">
+      <!-- Initial Welcome Message from Assistant -->
+      <div class="assistant-msg assistant-msg-bot">
+        <div class="msg-bubble">
+          <p>Hello! I am the <strong>HybridQML Platform Assistant</strong>. Ask me anything about our hybrid quantum-classical architecture, benchmarking, data privacy, or how to run predictions!</p>
+          <div class="suggested-chips-label">Suggested Questions:</div>
+          <div class="suggested-chips">
+            <button type="button" class="chip-btn" data-query="What is this platform?">What is this platform?</button>
+            <button type="button" class="chip-btn" data-query="Why is the quantum model less accurate than classical?">Quantum vs Classical accuracy?</button>
+            <button type="button" class="chip-btn" data-query="What quantum backends do you support?">What quantum backends work?</button>
+            <button type="button" class="chip-btn" data-query="Is this using real patient data?">Is this real patient data?</button>
+            <button type="button" class="chip-btn" data-query="Who built this?">Who built this?</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Form -->
+    <form id="assistant-form" class="assistant-input-area" onsubmit="return false;">
+      <input type="text" id="assistant-input" class="assistant-input" placeholder="Ask a question about the platform..." autocomplete="off" spellcheck="false" />
+      <button type="submit" id="assistant-send-btn" class="assistant-send-btn" aria-label="Send message">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </form>
+  </div>
+</div>
+
 <script>
 // Global Cyber Toast Notification System
 window.showToast = function(message, type = 'info', duration = 3500) {
@@ -350,5 +424,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+<script src="{{ url_for('static', filename='assistant.js') }}"></script>
 </body>
 </html>
