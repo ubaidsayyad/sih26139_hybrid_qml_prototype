@@ -46,10 +46,11 @@ from flask_login import (
 )
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect, CSRFError
+from sqlalchemy import func
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-from core.models import db, User, Prediction, PatientProfile
+from core.models import db, User, Prediction, PatientProfile, PatientRecord
 from core.pipeline_runner import run_full_pipeline
 from core.patient_batch import generate_sample_csv, validate_and_process_csv
 from core.pdf_report import generate_prediction_pdf
@@ -419,7 +420,30 @@ def logout_api():
 def my_reports_page():
     """Personal diagnostic reports portal for patient accounts."""
     profile = current_user.patient_profile if hasattr(current_user, "patient_profile") else None
-    return render_template("my_reports.html", profile=profile)
+
+    # Auto-link any unlinked PatientRecords matching the patient's name or profile full_name
+    patient_name = ""
+    if profile and profile.full_name:
+        patient_name = profile.full_name.strip().lower()
+    if not patient_name and current_user.name:
+        patient_name = current_user.name.strip().lower()
+
+    if patient_name:
+        unlinked = PatientRecord.query.filter(
+            PatientRecord.patient_user_id.is_(None),
+            func.lower(PatientRecord.full_name) == patient_name
+        ).all()
+        if unlinked:
+            for r in unlinked:
+                r.patient_user_id = current_user.id
+            db.session.commit()
+
+    # Query all predictions linked to this patient user via PatientRecord
+    predictions = Prediction.query.join(PatientRecord).filter(
+        PatientRecord.patient_user_id == current_user.id
+    ).order_by(Prediction.created_at.desc()).all()
+
+    return render_template("my_reports.html", profile=profile, predictions=predictions)
 
 
 @app.route("/my-profile")
@@ -634,6 +658,202 @@ def predict_api():
     })
 
 
+@app.route("/predict/new-patient", methods=["GET"])
+@login_required
+@clinician_required
+def predict_new_patient_page():
+    if STATE["run"] is None:
+        flash("Please run the pipeline first to train the quantum and classical models.", "info")
+        return redirect(url_for("index"))
+
+    splits = STATE["run"]["splits"]
+    n_test = len(splits["quantum"]["X_test"])
+    patients = User.query.filter_by(role="patient").order_by(User.name.asc()).all()
+    return render_template("predict_new_patient.html", n_test=n_test, patients=patients)
+
+
+@app.route("/predict/new-patient", methods=["POST"])
+@login_required
+@clinician_required
+def predict_new_patient_api():
+    if STATE["run"] is None:
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
+            return jsonify({"error": "No model loaded. Please run the pipeline first."}), 400
+        flash("No model loaded. Please run the pipeline first.", "error")
+        return redirect(url_for("index"))
+
+    payload = request.get_json(silent=True) if request.is_json else (request.form if request.form else {})
+
+    # Extract Patient Demographics
+    full_name = (payload.get("full_name") or payload.get("patient_name") or "").strip()
+    age_raw = payload.get("age") or payload.get("patient_age")
+    gender = (payload.get("gender") or payload.get("patient_gender") or "").strip() or None
+    patient_user_id_raw = payload.get("patient_user_id")
+
+    # Validation
+    if not full_name or len(full_name) < 2:
+        error_msg = "Please provide the patient's full name (minimum 2 characters)."
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
+            return jsonify({"error": error_msg}), 400
+        flash(error_msg, "error")
+        return redirect(url_for("predict_new_patient_page"))
+
+    try:
+        age = int(age_raw)
+        if age < 1 or age > 125:
+            raise ValueError("Age out of range")
+    except (ValueError, TypeError):
+        error_msg = "Please provide a valid patient age between 1 and 125."
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
+            return jsonify({"error": error_msg}), 400
+        flash(error_msg, "error")
+        return redirect(url_for("predict_new_patient_page"))
+
+    # Determine linked patient user account if specified or auto-matched
+    patient_user_id = None
+    if patient_user_id_raw:
+        try:
+            cand_id = int(patient_user_id_raw)
+            patient_user = db.session.get(User, cand_id)
+            if patient_user and patient_user.role == "patient":
+                patient_user_id = patient_user.id
+        except (ValueError, TypeError):
+            pass
+
+    if not patient_user_id:
+        # Auto-match by name against registered patient accounts
+        matched_user = User.query.filter(
+            User.role == "patient",
+            func.lower(User.name) == full_name.lower()
+        ).first()
+        if not matched_user:
+            matched_profile = PatientProfile.query.filter(
+                func.lower(PatientProfile.full_name) == full_name.lower()
+            ).first()
+            if matched_profile:
+                matched_user = matched_profile.user
+        if matched_user:
+            patient_user_id = matched_user.id
+
+    # Test sample index
+    try:
+        idx = int(payload.get("index", 0))
+    except (ValueError, TypeError):
+        idx = 0
+
+    run_data = STATE["run"]
+    splits = run_data["splits"]
+    vqc = run_data["vqc"]
+    fair_model = run_data.get("fair_model")
+
+    n_test = len(splits["quantum"]["X_test"])
+    idx = max(0, min(idx, n_test - 1))
+
+    x_q = splits["quantum"]["X_test"][idx]
+    x_c = splits["classical_same_features"]["X_test"][idx]
+    y_true = int(splits["quantum"]["y_test"][idx])
+
+    # Quantum Inference
+    q_proba = float(vqc.predict_proba([x_q])[0])
+    q_pred = int(q_proba >= 0.5)
+    q_conf = round(q_proba if q_pred == 1 else 1.0 - q_proba, 4)
+
+    # Classical Fair Baseline Inference
+    if fair_model is not None:
+        c_proba = float(fair_model.predict_proba([x_c])[0, 1])
+        c_pred = int(c_proba >= 0.5)
+        c_conf = round(c_proba if c_pred == 1 else 1.0 - c_proba, 4)
+        c_label = "Malignant" if c_pred == 1 else "Benign"
+        c_correct = bool(c_pred == y_true)
+    else:
+        c_proba = None
+        c_conf = None
+        c_label = "—"
+        c_correct = None
+
+    # Persist PatientRecord and linked Prediction
+    pred_id = None
+    rec_id = None
+    try:
+        record = PatientRecord(
+            full_name=full_name,
+            age=age,
+            gender=gender,
+            entered_by=current_user.id,
+            patient_user_id=patient_user_id
+        )
+        db.session.add(record)
+        db.session.flush()
+        rec_id = record.id
+
+        feature_dict = {f"PC{k+1}": round(float(x_q[k]), 4) for k in range(len(x_q))}
+        metadata = {
+            "patient_record_id": rec_id,
+            "patient_name": full_name,
+            "patient_age": age,
+            "patient_gender": gender,
+            "patient_user_id": patient_user_id,
+            "patient_index": idx,
+            "quantum_prediction": "Malignant" if q_pred == 1 else "Benign",
+            "quantum_prob": round(q_proba, 4),
+            "quantum_conf": q_conf,
+            "classical_prediction": c_label,
+            "classical_prob": round(c_proba, 4) if c_proba is not None else None,
+            "classical_conf": c_conf
+        }
+
+        pred_record = Prediction(
+            user_id=current_user.id,
+            patient_record_id=rec_id,
+            dataset_name="Breast Cancer Wisconsin (Diagnostic)",
+            model_used="both",
+            input_features=json.dumps(feature_dict),
+            prediction_result="Malignant" if q_pred == 1 else "Benign",
+            confidence=q_conf,
+            true_label="Malignant" if y_true == 1 else "Benign",
+            metadata_json=json.dumps(metadata)
+        )
+        db.session.add(pred_record)
+        db.session.commit()
+        pred_id = pred_record.id
+    except Exception as err:
+        db.session.rollback()
+        print(f"[NAMED PATIENT PREDICTION ERROR] Failed to record inference: {err}")
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
+            return jsonify({"error": f"Database logging error: {err}"}), 500
+        flash(f"Database error: {err}", "error")
+        return redirect(url_for("predict_new_patient_page"))
+
+    res_data = {
+        "success": True,
+        "prediction_id": pred_id,
+        "patient_record_id": rec_id,
+        "patient_name": full_name,
+        "patient_age": age,
+        "patient_gender": gender,
+        "patient_user_id": patient_user_id,
+        "is_linked": patient_user_id is not None,
+        "index": idx,
+        "true_label": "Malignant (Disease-Positive)" if y_true == 1 else "Benign (Disease-Negative)",
+        "true_int": y_true,
+        "quantum_prediction": "Malignant" if q_pred == 1 else "Benign",
+        "quantum_confidence": q_conf,
+        "quantum_raw_score": round(q_proba, 3),
+        "quantum_correct": bool(q_pred == y_true),
+        "classical_prediction": c_label,
+        "classical_confidence": c_conf,
+        "classical_raw_score": round(c_proba, 3) if c_proba is not None else None,
+        "classical_correct": c_correct,
+        "correct": bool(q_pred == y_true)
+    }
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
+        return jsonify(res_data)
+
+    flash(f"Diagnostic inference successfully recorded for patient {full_name} (#{rec_id}).", "success")
+    return render_template("predict_new_patient.html", n_test=n_test, patients=User.query.filter_by(role="patient").all(), last_result=res_data)
+
+
 @app.route("/upload", methods=["GET"])
 @login_required
 @clinician_required
@@ -775,28 +995,68 @@ def history_page():
         query = query.order_by(Prediction.created_at.desc())
 
     pagination = query.paginate(page=page, per_page=20, error_out=False)
+    patients = User.query.filter_by(role="patient").order_by(User.name.asc()).all()
 
     return render_template(
         "history.html",
         pagination=pagination,
+        patients=patients,
         current_model=model_filter,
         current_result=result_filter,
         current_sort=sort_order
     )
 
 
-@app.route("/history/<int:pred_id>")
+@app.route("/history/link-patient", methods=["POST"])
 @login_required
 @clinician_required
+def link_patient_record():
+    """Allows doctors or admins to link an existing PatientRecord to a registered patient account."""
+    record_id = request.form.get("record_id", type=int)
+    patient_user_id = request.form.get("patient_user_id", type=int)
+
+    record = db.session.get(PatientRecord, record_id)
+    if not record:
+        flash("Patient record not found.", "error")
+        return redirect(request.referrer or url_for("history_page"))
+
+    if record.entered_by != current_user.id and not current_user.is_admin:
+        flash("Access denied: You cannot modify other practitioners' patient records.", "error")
+        return redirect(request.referrer or url_for("history_page"))
+
+    if patient_user_id:
+        target_user = db.session.get(User, patient_user_id)
+        if not target_user or target_user.role != "patient":
+            flash("Invalid patient account selected.", "error")
+            return redirect(request.referrer or url_for("history_page"))
+        record.patient_user_id = target_user.id
+        flash(f"Patient record '{record.full_name}' linked to user account {target_user.name} ({target_user.email}).", "success")
+    else:
+        record.patient_user_id = None
+        flash(f"Patient record '{record.full_name}' unlinked from user account.", "info")
+
+    db.session.commit()
+    return redirect(request.referrer or url_for("history_page"))
+
+
+@app.route("/history/<int:pred_id>")
+@login_required
 def history_detail(pred_id):
     pred = db.session.get(Prediction, pred_id)
     if not pred:
         flash("Diagnostic prediction record not found.", "error")
+        if current_user.role == "patient":
+            return redirect(url_for("my_reports_page"))
         return redirect(url_for("history_page"))
 
-    # Security check: Doctor can only access their own records. Admin can access any.
-    if pred.user_id != current_user.id and not current_user.is_admin:
-        flash("Access denied: You cannot view other practitioners' patient records.", "error")
+    # Security check: Admin, record author, or linked patient
+    is_author = (pred.user_id == current_user.id)
+    is_linked_patient = bool(pred.patient_record and pred.patient_record.patient_user_id == current_user.id)
+
+    if not (current_user.is_admin or is_author or is_linked_patient):
+        flash("Access denied: You cannot view other practitioners' or patients' records.", "error")
+        if current_user.role == "patient":
+            return redirect(url_for("my_reports_page"))
         return redirect(url_for("history_page"))
 
     return render_template("history_detail.html", pred=pred)
@@ -804,16 +1064,22 @@ def history_detail(pred_id):
 
 @app.route("/history/<int:pred_id>/pdf")
 @login_required
-@clinician_required
 def download_prediction_pdf(pred_id):
     pred = db.session.get(Prediction, pred_id)
     if not pred:
         flash("Diagnostic prediction record not found.", "error")
+        if current_user.role == "patient":
+            return redirect(url_for("my_reports_page"))
         return redirect(url_for("history_page"))
 
-    # Security check: Doctor can only access their own records. Admin can access any.
-    if pred.user_id != current_user.id and not current_user.is_admin:
-        flash("Access denied: You cannot export other practitioners' patient records.", "error")
+    # Security check: Admin, record author, or linked patient
+    is_author = (pred.user_id == current_user.id)
+    is_linked_patient = bool(pred.patient_record and pred.patient_record.patient_user_id == current_user.id)
+
+    if not (current_user.is_admin or is_author or is_linked_patient):
+        flash("Access denied: You cannot export other practitioners' or patients' records.", "error")
+        if current_user.role == "patient":
+            return redirect(url_for("my_reports_page"))
         return redirect(url_for("history_page"))
 
     exp_data = STATE["run"]["results"] if STATE.get("run") else None
@@ -826,7 +1092,8 @@ def download_prediction_pdf(pred_id):
     )
 
     date_str = pred.created_at.strftime('%Y-%m-%d') if pred.created_at else time.strftime('%Y-%m-%d')
-    filename = f"report_patient_{pred.id}_{date_str}.pdf"
+    patient_tag = f"_{pred.patient_record.full_name.replace(' ', '_')}" if pred.patient_record else ""
+    filename = f"report_patient_{pred.id}{patient_tag}_{date_str}.pdf"
 
     return Response(
         pdf_bytes,
@@ -889,6 +1156,13 @@ def init_db_and_seed_admin():
         try:
             from sqlalchemy import text
             db.session.execute(text("ALTER TABLE users ADD COLUMN api_key VARCHAR(64)"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+        try:
+            from sqlalchemy import text
+            db.session.execute(text("ALTER TABLE predictions ADD COLUMN patient_record_id INTEGER REFERENCES patient_records(id)"))
             db.session.commit()
         except Exception:
             db.session.rollback()

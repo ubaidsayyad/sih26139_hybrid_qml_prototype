@@ -7,10 +7,19 @@
     <span>●</span>
     <span>Interactive Dual-Model Diagnostic Inference</span>
   </div>
-  <h1>Clinical Diagnostic Terminal</h1>
-  <p class="lede">
-    Select a held-out test patient (indices 0 to {{ n_test - 1 }}) and evaluate real-time quantum statevector classification side-by-side with the classical fair benchmark.
-  </p>
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h1>Clinical Diagnostic Terminal</h1>
+      <p class="lede">
+        Select a held-out test patient (indices 0 to {{ n_test - 1 }}) and evaluate real-time quantum statevector classification side-by-side with the classical fair benchmark.
+      </p>
+    </div>
+    <div style="margin-top: 4px;">
+      <a href="{{ url_for('predict_new_patient_page') }}" class="btn-primary" style="text-decoration: none; padding: 9px 18px; font-size: 13.5px; display: inline-flex; align-items: center; gap: 8px;">
+        <span>👤</span> + Screen Named Patient
+      </a>
+    </div>
+  </div>
 </section>
 
 <section class="card wide predict-card">

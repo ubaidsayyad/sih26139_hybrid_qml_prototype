@@ -38,6 +38,53 @@
   </div>
 </div>
 
+<!-- Patient Subject Identification Card -->
+<div class="card wide" style="margin-bottom: 24px; border: 1px solid var(--border-glass); background: rgba(15, 23, 42, 0.65);">
+  <div class="eyebrow" style="margin-bottom: 6px;">
+    <span>●</span>
+    <span>Patient Case Record</span>
+  </div>
+  <h2 style="font-size: 18px; margin-bottom: 14px;">Clinical Identification</h2>
+  
+  <div class="grid-3" style="gap: 16px;">
+    <div class="card" style="background: rgba(18, 28, 51, 0.7); border: 1px solid var(--border-subtle); padding: 14px 18px;">
+      <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Patient Subject</span>
+      <div style="font-size: 16px; font-weight: 700; color: var(--text-pure); margin-top: 4px;">
+        {% if pred.patient_record %}
+          {{ pred.patient_record.full_name }}
+        {% else %}
+          {% set s_idx = pred.metadata_dict.get('patient_index', pred.metadata_dict.get('patient_id')) %}
+          Anonymous / Sample #{{ s_idx if s_idx is not none else '—' }}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card" style="background: rgba(18, 28, 51, 0.7); border: 1px solid var(--border-subtle); padding: 14px 18px;">
+      <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Age / Demographics</span>
+      <div style="font-size: 15px; font-weight: 600; color: var(--text-pure); margin-top: 4px;">
+        {% if pred.patient_record %}
+          {{ pred.patient_record.age }} yrs {% if pred.patient_record.gender %}<span style="color: var(--text-dim); font-size: 13px;">({{ pred.patient_record.gender }})</span>{% endif %}
+        {% else %}
+          <span style="color: var(--text-dim);">Held-Out Cohort</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card" style="background: rgba(18, 28, 51, 0.7); border: 1px solid var(--border-subtle); padding: 14px 18px;">
+      <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Account Association</span>
+      <div style="margin-top: 4px;">
+        {% if pred.patient_record and pred.patient_record.patient_user_id %}
+          <span class="pill" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border-color: rgba(16, 185, 129, 0.35);">✓ Linked ({{ pred.patient_record.patient_user.email }})</span>
+        {% elif pred.patient_record %}
+          <span class="pill" style="background: rgba(255,255,255,0.05); color: var(--text-dim); border-color: var(--border-subtle);">Unlinked Walk-in Record</span>
+        {% else %}
+          <span class="pill" style="background: rgba(0, 229, 255, 0.08); color: var(--primary-cyan); border-color: var(--border-cyan);">Dataset Benchmark</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Dual Model Comparison Cards -->
 <div class="grid-2" style="margin-bottom: 24px;">
   <!-- Quantum Branch Card -->

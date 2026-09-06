@@ -1,0 +1,400 @@
+{% extends "base.html" %}
+{% block title %}Named Patient Diagnostic · Quantum Medical Portal{% endblock %}
+
+{% block content %}
+<section class="dash-header">
+  <div class="eyebrow">
+    <span>●</span>
+    <span>Clinical Diagnostic Workflow · Named Patient Intake</span>
+  </div>
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h1>Named Patient Screening</h1>
+      <p class="lede">
+        Record patient clinical demographics and evaluate dual-model hybrid quantum statevector inference side-by-side with the classical fair benchmark.
+      </p>
+    </div>
+    <div style="margin-top: 4px;">
+      <a href="{{ url_for('predict_page') }}" class="btn-secondary" style="text-decoration: none; padding: 8px 16px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+        <span>⚡</span> Anonymous Test Terminal →
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Main Intake and Inference Card -->
+<section class="card wide predict-card" style="margin-bottom: 24px;">
+  <form id="named-patient-form" onsubmit="event.preventDefault(); runNamedPredict();">
+    
+    <!-- Section 1: Patient Identification & Demographics -->
+    <div style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border-glass);">
+      <div class="eyebrow" style="margin-bottom: 6px;">
+        <span>●</span>
+        <span>Demographics & Portal Association</span>
+      </div>
+      <h2 style="font-size: 18px; margin-bottom: 16px;">Patient Intake Demographics</h2>
+      
+      <div class="grid-3" style="gap: 16px;">
+        <div>
+          <label for="patient-name" style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
+            Patient Full Name <span style="color: var(--primary-cyan);">*</span>
+          </label>
+          <input type="text" id="patient-name" name="full_name" required placeholder="e.g. Test Patient A"
+                 style="width: 100%; padding: 10px 14px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 14px;">
+        </div>
+
+        <div>
+          <label for="patient-age" style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
+            Patient Age (Years) <span style="color: var(--primary-cyan);">*</span>
+          </label>
+          <input type="number" id="patient-age" name="age" min="1" max="125" value="45" required
+                 style="width: 100%; padding: 10px 14px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 14px;">
+        </div>
+
+        <div>
+          <label for="patient-gender" style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
+            Gender (Optional)
+          </label>
+          <select id="patient-gender" name="gender"
+                  style="width: 100%; padding: 10px 14px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 14px;">
+            <option value="">Unspecified</option>
+            <option value="Female" selected>Female</option>
+            <option value="Male">Male</option>
+            <option value="Non-binary">Non-binary</option>
+            <option value="Other / Prefer not to say">Other / Prefer not to say</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Account Association Dropdown -->
+      <div style="margin-top: 16px;">
+        <label for="patient-user-id" style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
+          Link to Registered Patient Account (Optional)
+        </label>
+        <select id="patient-user-id" name="patient_user_id"
+                style="width: 100%; max-width: 500px; padding: 10px 14px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 13.5px;">
+          <option value="">— Unregistered Walk-In Patient (No Portal Account) —</option>
+          {% for p in patients %}
+            <option value="{{ p.id }}">{{ p.name }} ({{ p.email }})</option>
+          {% endfor %}
+        </select>
+        <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px;">
+          💡 When linked, the patient can securely view this verified report and download their PDF summary on <a href="{{ url_for('my_reports_page') }}" target="_blank" style="color: var(--primary-cyan);">My Reports</a>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Clinical Feature & Sample Selection (Reused PCA Test Set) -->
+    <div>
+      <div class="eyebrow" style="margin-bottom: 6px;">
+        <span>●</span>
+        <span>Biomarker Feature Vector</span>
+      </div>
+      <h2 style="font-size: 18px; margin-bottom: 12px;">Diagnostic Feature Input</h2>
+      
+      <!-- Quick Sample Preset Chips -->
+      <div class="patient-chips-wrap" style="margin-bottom: 16px;">
+        <span class="patient-chips-label">Preset Biomarkers:</span>
+        <button type="button" class="patient-chip malignant is-active" data-idx="0" onclick="setPresetSample(0, this)">
+          <span class="chip-dot"></span> Sample #0 (Malignant)
+        </button>
+        <button type="button" class="patient-chip malignant" data-idx="3" onclick="setPresetSample(3, this)">
+          <span class="chip-dot"></span> Sample #3 (Malignant)
+        </button>
+        <button type="button" class="patient-chip benign" data-idx="12" onclick="setPresetSample(12, this)">
+          <span class="chip-dot"></span> Sample #12 (Benign)
+        </button>
+        <button type="button" class="patient-chip benign" data-idx="42" onclick="setPresetSample(42, this)">
+          <span class="chip-dot"></span> Sample #42 (Benign)
+        </button>
+        <button type="button" class="patient-chip random" id="btn-random-chip" onclick="setRandomSample(this)">
+          <span>🎲</span> Random Held-Out Sample
+        </button>
+      </div>
+
+      <div class="predict-controls" style="align-items: flex-end;">
+        <div>
+          <label for="idx" style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
+            Biomarker Test Row Index (0–{{ n_test - 1 }}):
+          </label>
+          <input type="number" id="idx" min="0" max="{{ n_test - 1 }}" value="0" style="width: 140px;">
+        </div>
+        <button type="submit" class="btn-primary" id="btn-submit-predict" style="padding: 10px 22px; font-size: 14px;">
+          <span>🔬</span> Run Dual Inference & Save Record
+        </button>
+      </div>
+    </div>
+
+  </form>
+
+  <!-- Live Inference Results Section -->
+  <div id="named-result" class="predict-result" style="display:none; margin-top: 28px;">
+    
+    <!-- Confirmed Patient & Ground Truth Banner -->
+    <div class="card" style="background: rgba(18, 28, 51, 0.9); border-left: 4px solid var(--primary-cyan); margin-bottom: 20px; padding: 18px 22px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Confirmed Patient File & Ground Truth:</span>
+          <div style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: var(--text-pure); margin-top: 4px;">
+            <span id="r-patient-name" style="color: var(--primary-cyan);"></span>
+            <span id="r-patient-demog" style="color: var(--text-dim); font-size: 15px; font-weight: 400; margin-left: 8px;"></span>
+          </div>
+          <div id="r-true" style="font-size: 14px; font-weight: 600; color: var(--text-main); margin-top: 4px;"></div>
+        </div>
+        <div style="text-align: right;">
+          <div id="r-portal-badge" class="pill" style="margin-bottom: 6px;">Walk-in Patient</div>
+          <div id="r-pred-id-badge" style="font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);">Record #—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dual Side-by-Side Model Inference Comparison -->
+    <div class="grid-2" style="margin: 0 0 20px;">
+      
+      <!-- Quantum VQC Card -->
+      <div class="card" style="border: 1px solid var(--border-glass); background: linear-gradient(180deg, rgba(0, 245, 212, 0.06) 0%, rgba(13, 22, 40, 0.9) 100%);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h3 style="color: var(--quantum-teal); margin: 0;">⚛ Hybrid VQC (4 Qubits)</h3>
+          <span class="muted" style="font-family: var(--font-mono); font-size: 11px;">Angle Encoded</span>
+        </div>
+        
+        <div class="result-row">
+          <span class="result-label">Predicted Diagnosis:</span>
+          <span id="q-pred" class="result-value" style="font-size: 17px; font-weight: 800; color: var(--quantum-teal);"></span>
+        </div>
+
+        <div class="result-row">
+          <span class="result-label">Classification Confidence:</span>
+          <span id="q-conf" class="result-value mono" style="font-size: 16px; color: var(--text-pure);"></span>
+        </div>
+
+        <!-- Animated Quantum Confidence Bar -->
+        <div class="confidence-bar-container">
+          <div id="q-bar" class="confidence-bar-fill" style="width: 0%; background: linear-gradient(90deg, var(--accent-violet), var(--quantum-teal));"></div>
+        </div>
+
+        <div class="result-row">
+          <span class="result-label">Pauli-Z Expectation ⟨Z⟩:</span>
+          <span id="q-score" class="result-value mono"></span>
+        </div>
+
+        <div id="q-badge" class="badge" style="width: 100%; justify-content: center; margin-top: 14px;"></div>
+      </div>
+
+      <!-- Classical Fair Baseline Card -->
+      <div class="card" style="border: 1px solid var(--border-violet); background: linear-gradient(180deg, rgba(139, 92, 246, 0.06) 0%, rgba(13, 22, 40, 0.9) 100%);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h3 style="color: #C4B5FD; margin: 0;">📊 Classical (Same 4 Feat)</h3>
+          <span class="muted" style="font-family: var(--font-mono); font-size: 11px;">Logistic Regression</span>
+        </div>
+
+        <div class="result-row">
+          <span class="result-label">Predicted Diagnosis:</span>
+          <span id="c-pred" class="result-value" style="font-size: 17px; font-weight: 800; color: #C4B5FD;"></span>
+        </div>
+
+        <div class="result-row">
+          <span class="result-label">Classification Confidence:</span>
+          <span id="c-conf" class="result-value mono" style="font-size: 16px; color: var(--text-pure);"></span>
+        </div>
+
+        <!-- Animated Classical Confidence Bar -->
+        <div class="confidence-bar-container">
+          <div id="c-bar" class="confidence-bar-fill" style="width: 0%; background: linear-gradient(90deg, var(--accent-violet), #C4B5FD);"></div>
+        </div>
+
+        <div class="result-row">
+          <span class="result-label">Sigmoid Output Prob:</span>
+          <span id="c-score" class="result-value mono"></span>
+        </div>
+
+        <div id="c-badge" class="badge" style="width: 100%; justify-content: center; margin-top: 14px;"></div>
+      </div>
+
+    </div>
+
+    <!-- Action Controls: PDF Download & Navigation -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 16px; border-top: 1px solid var(--border-glass);">
+      <div style="color: var(--text-muted); font-size: 13px;">
+        <span>🔒 Diagnostic Record & Audit Trail Persisted to Secure Database</span>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a id="btn-download-pdf" href="#" class="btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+          <span>📄</span> Download Report (PDF)
+        </a>
+        <a id="btn-view-detail" href="#" class="btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+          <span>🔍</span> Full Breakdown →
+        </a>
+        <a href="{{ url_for('history_page') }}" class="pill" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; border-color: rgba(255,255,255,0.15); color: var(--text-pure);">
+          <span>📋</span> View In History
+        </a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+const MAX_TEST_SAMPLES = {{ n_test }};
+
+function setPresetSample(idx, btn) {
+  document.querySelectorAll('.patient-chip').forEach(c => c.classList.remove('is-active'));
+  if (btn) btn.classList.add('is-active');
+  document.getElementById('idx').value = idx;
+}
+
+function setRandomSample(btn) {
+  const randIdx = Math.floor(Math.random() * MAX_TEST_SAMPLES);
+  setPresetSample(randIdx, btn);
+}
+
+async function runNamedPredict() {
+  const nameInput = document.getElementById('patient-name');
+  const ageInput = document.getElementById('patient-age');
+  const genderInput = document.getElementById('patient-gender');
+  const userSelect = document.getElementById('patient-user-id');
+  const idxInput = document.getElementById('idx');
+
+  const fullName = (nameInput.value || '').trim();
+  const age = parseInt(ageInput.value, 10);
+  const gender = genderInput.value || null;
+  const patientUserId = userSelect.value ? parseInt(userSelect.value, 10) : null;
+  let idx = parseInt(idxInput.value || 0, 10);
+
+  if (!fullName || fullName.length < 2) {
+    if (window.showToast) window.showToast("Please enter the patient's full name.", "error");
+    nameInput.focus();
+    return;
+  }
+
+  if (isNaN(age) || age < 1 || age > 125) {
+    if (window.showToast) window.showToast("Please enter a valid age between 1 and 125.", "error");
+    ageInput.focus();
+    return;
+  }
+
+  if (isNaN(idx) || idx < 0 || idx >= MAX_TEST_SAMPLES) {
+    idx = Math.max(0, Math.min(idx || 0, MAX_TEST_SAMPLES - 1));
+    idxInput.value = idx;
+  }
+
+  const submitBtn = document.getElementById('btn-submit-predict');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span>⚡</span> Computing Statevectors & Logging…';
+
+  try {
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+    const res = await fetch('{{ url_for("predict_new_patient_api") }}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': csrfToken
+      },
+      body: JSON.stringify({
+        full_name: fullName,
+        age: age,
+        gender: gender,
+        patient_user_id: patientUserId,
+        index: idx
+      })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error || 'Diagnostic evaluation failed.');
+    }
+
+    const data = await res.json();
+    renderResults(data);
+
+    if (window.showToast) {
+      window.showToast(`Inference recorded for ${fullName}! Record #${data.prediction_id}.`, "success");
+    }
+
+  } catch (err) {
+    if (window.showToast) {
+      window.showToast(err.message, "error");
+    } else {
+      alert(err.message);
+    }
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span>🔬</span> Run Dual Inference & Save Record';
+  }
+}
+
+function renderResults(data) {
+  const container = document.getElementById('named-result');
+  container.style.display = 'block';
+
+  // Patient info banner
+  document.getElementById('r-patient-name').textContent = data.patient_name;
+  const demog = [];
+  if (data.patient_age) demog.push(`${data.patient_age} yrs`);
+  if (data.patient_gender) demog.push(data.patient_gender);
+  demog.push(`Sample #${data.index}`);
+  document.getElementById('r-patient-demog').textContent = `(${demog.join(' · ')})`;
+
+  document.getElementById('r-true').textContent = `Ground Truth Pathology: ${data.true_label}`;
+  
+  const portalBadge = document.getElementById('r-portal-badge');
+  if (data.is_linked) {
+    portalBadge.textContent = '✓ Linked to Patient Portal Account';
+    portalBadge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+    portalBadge.style.color = '#34D399';
+    portalBadge.style.background = 'rgba(16, 185, 129, 0.1)';
+  } else {
+    portalBadge.textContent = 'Walk-in Record (Unlinked Account)';
+    portalBadge.style.borderColor = 'var(--border-subtle)';
+    portalBadge.style.color = 'var(--text-dim)';
+    portalBadge.style.background = 'transparent';
+  }
+
+  document.getElementById('r-pred-id-badge').textContent = `Audit Record #${data.prediction_id}`;
+
+  // Quantum results
+  document.getElementById('q-pred').textContent = data.quantum_prediction;
+  document.getElementById('q-conf').textContent = `${(data.quantum_confidence * 100).toFixed(1)}%`;
+  document.getElementById('q-bar').style.width = `${data.quantum_confidence * 100}%`;
+  document.getElementById('q-score').textContent = data.quantum_raw_score;
+
+  const qBadge = document.getElementById('q-badge');
+  if (data.quantum_correct) {
+    qBadge.className = 'badge badge-match';
+    qBadge.textContent = '✓ Matches Ground Truth';
+  } else {
+    qBadge.className = 'badge badge-diverge';
+    qBadge.textContent = '✗ Differs from Ground Truth';
+  }
+
+  // Classical results
+  document.getElementById('c-pred').textContent = data.classical_prediction;
+  document.getElementById('c-conf').textContent = data.classical_confidence != null ? `${(data.classical_confidence * 100).toFixed(1)}%` : '—';
+  document.getElementById('c-bar').style.width = data.classical_confidence != null ? `${data.classical_confidence * 100}%` : '0%';
+  document.getElementById('c-score').textContent = data.classical_raw_score != null ? data.classical_raw_score : '—';
+
+  const cBadge = document.getElementById('c-badge');
+  if (data.classical_correct === true) {
+    cBadge.className = 'badge badge-match';
+    cBadge.textContent = '✓ Matches Ground Truth';
+  } else if (data.classical_correct === false) {
+    cBadge.className = 'badge badge-diverge';
+    cBadge.textContent = '✗ Differs from Ground Truth';
+  } else {
+    cBadge.className = 'badge badge-neutral';
+    cBadge.textContent = '— Evaluation Standby';
+  }
+
+  // Action links
+  if (data.prediction_id) {
+    document.getElementById('btn-download-pdf').href = `/history/${data.prediction_id}/pdf`;
+    document.getElementById('btn-view-detail').href = `/history/${data.prediction_id}`;
+  }
+
+  container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+</script>
+{% endblock %}

@@ -49,7 +49,90 @@
   </div>
 </div>
 
-<!-- Placeholder Reports Container -->
+{% if predictions and predictions|length > 0 %}
+<!-- Verified Diagnostic Reports Section -->
+<div style="margin-bottom: 24px;">
+  <div class="eyebrow" style="margin-bottom: 6px;">
+    <span>●</span>
+    <span>Verified Medical Audit Records</span>
+  </div>
+  <h2 style="margin-bottom: 16px;">Published Clinical Reports ({{ predictions|length }})</h2>
+
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+    {% for pred in predictions %}
+    <div class="card wide" style="border: 1px solid var(--border-glass); background: rgba(15, 23, 42, 0.7); padding: 22px 26px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px; margin-bottom: 16px;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--primary-cyan); font-weight: 600;">REPORT #{{ pred.id }}</span>
+            <span style="font-size: 12.5px; color: var(--text-dim);">• {{ pred.created_at.strftime('%B %d, %Y at %H:%M UTC') }}</span>
+            {% if pred.patient_record %}
+              <span class="pill" style="background: rgba(16, 185, 129, 0.12); color: #34D399; border-color: rgba(16, 185, 129, 0.3); font-size: 11px;">Patient: {{ pred.patient_record.full_name }}</span>
+            {% endif %}
+          </div>
+          <div style="font-size: 14px; color: var(--text-main);">
+            Attending Clinician: <strong>{{ pred.user.name if pred.user else 'Oncology Specialist' }}</strong>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+          {% if pred.prediction_result == 'Malignant' %}
+            <span class="badge badge-malignant" style="font-size: 13px; padding: 5px 12px;">Malignant (Requires Clinical Follow-up)</span>
+          {% else %}
+            <span class="badge badge-benign" style="font-size: 13px; padding: 5px 12px;">Benign (Normal / Non-elevated Risk)</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Assessment Summary Grid -->
+      <div class="grid-3" style="gap: 14px; margin-bottom: 18px;">
+        <div class="card" style="background: rgba(18, 28, 51, 0.6); border: 1px solid var(--border-subtle); padding: 12px 16px;">
+          <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Hybrid Quantum Confidence</span>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 700; color: var(--quantum-teal); margin-top: 4px;">
+            {{ "%.1f"|format(pred.confidence * 100) }}%
+          </div>
+          <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; margin-top: 6px;">
+            <div style="width: {{ pred.confidence * 100 }}%; height: 100%; background: linear-gradient(90deg, var(--accent-violet), var(--quantum-teal));"></div>
+          </div>
+        </div>
+
+        <div class="card" style="background: rgba(18, 28, 51, 0.6); border: 1px solid var(--border-subtle); padding: 12px 16px;">
+          <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Model Architecture</span>
+          <div style="font-size: 14px; font-weight: 600; color: var(--text-pure); margin-top: 4px;">
+            4-Qubit Variational Classifier
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 2px;">
+            Validated with Classical Baseline
+          </div>
+        </div>
+
+        <div class="card" style="background: rgba(18, 28, 51, 0.6); border: 1px solid var(--border-subtle); padding: 12px 16px;">
+          <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Record Verification</span>
+          <div style="font-size: 14px; font-weight: 600; color: #34D399; margin-top: 4px; display: flex; align-items: center; gap: 6px;">
+            <span>✓</span> Digitally Signed Audit
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 2px;">
+            Certified Biopsy Telemetry
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.05);">
+        <a href="{{ url_for('history_detail', pred_id=pred.id) }}" class="btn-secondary" style="text-decoration: none; padding: 7px 14px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+          <span>🔍</span> View Full Breakdown
+        </a>
+        <a href="{{ url_for('download_prediction_pdf', pred_id=pred.id) }}" class="btn-primary" style="text-decoration: none; padding: 7px 16px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+          <span>📄</span> Download Report (PDF)
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% else %}
+<!-- Placeholder Reports Container (Empty State) -->
 <div class="card wide" style="text-align: center; padding: 48px 24px; border: 1px dashed rgba(0, 229, 255, 0.25); background: rgba(12, 20, 36, 0.5);">
   <div style="width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 50%; background: rgba(0, 229, 255, 0.1); border: 1px solid var(--border-cyan); display: flex; align-items: center; justify-content: center; font-size: 24px;">
     📑
@@ -58,7 +141,7 @@
     No Diagnostic Reports Published Yet
   </h2>
   <p style="color: var(--text-dim); max-width: 540px; margin: 0 auto 24px; font-size: 14px; line-height: 1.6;">
-    Your patient account is properly configured and linked to the platform. In the upcoming phase, verified biopsy analysis, hybrid quantum classification scores, and doctor-signed diagnostic summaries will appear in this workspace.
+    Your patient account is properly configured and linked to the platform. Once your attending oncologist completes a hybrid quantum screening for your file, your official diagnostic report and downloadable PDF will appear here.
   </p>
   <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
     <a href="{{ url_for('my_profile_page') }}" class="btn-primary" style="text-decoration: none; padding: 9px 18px; font-size: 13.5px;">
@@ -69,4 +152,5 @@
     </a>
   </div>
 </div>
+{% endif %}
 {% endblock %}

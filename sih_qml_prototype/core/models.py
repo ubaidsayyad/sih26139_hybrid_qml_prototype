@@ -98,7 +98,11 @@ class Prediction(db.Model):
     confidence = db.Column(db.Float, nullable=False)  # Primary model confidence (0.0 to 1.0)
     true_label = db.Column(db.String(50), nullable=True)  # 'Malignant', 'Benign', or None
     metadata_json = db.Column(db.Text, nullable=True)  # Additional details (quantum_prob, classical_prob, etc)
+    patient_record_id = db.Column(db.Integer, db.ForeignKey("patient_records.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=utc_now, nullable=False, index=True)
+
+    # Relationships
+    patient_record = db.relationship("PatientRecord", backref=db.backref("predictions", lazy="dynamic"))
 
     @property
     def features_dict(self) -> dict:
@@ -127,6 +131,10 @@ class Prediction(db.Model):
             "id": self.id,
             "user_id": self.user_id,
             "user_name": self.user.name if self.user else None,
+            "patient_record_id": self.patient_record_id,
+            "patient_name": self.patient_record.full_name if self.patient_record else None,
+            "patient_age": self.patient_record.age if self.patient_record else None,
+            "patient_gender": self.patient_record.gender if self.patient_record else None,
             "dataset_name": self.dataset_name,
             "model_used": self.model_used,
             "prediction_result": self.prediction_result,
@@ -171,4 +179,36 @@ class PatientProfile(db.Model):
 
     def __repr__(self):
         return f"<PatientProfile #{self.id} User:{self.user_id} Name:'{self.full_name}' Age:{self.age}>"
+
+
+class PatientRecord(db.Model):
+    __tablename__ = "patient_records"
+
+    id = db.Column(db.Integer, primary_key=True)
+    full_name = db.Column(db.String(150), nullable=False)
+    age = db.Column(db.Integer, nullable=False)
+    gender = db.Column(db.String(30), nullable=True)
+    entered_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    patient_user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False, index=True)
+
+    # Relationships
+    clinician = db.relationship("User", foreign_keys=[entered_by], backref=db.backref("entered_patient_records", lazy="dynamic"))
+    patient_user = db.relationship("User", foreign_keys=[patient_user_id], backref=db.backref("patient_records", lazy="dynamic"))
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "full_name": self.full_name,
+            "age": self.age,
+            "gender": self.gender,
+            "entered_by": self.entered_by,
+            "clinician_name": self.clinician.name if self.clinician else None,
+            "patient_user_id": self.patient_user_id,
+            "patient_email": self.patient_user.email if self.patient_user else None,
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None
+        }
+
+    def __repr__(self):
+        return f"<PatientRecord #{self.id} '{self.full_name}' Age:{self.age} EnteredBy:{self.entered_by}>"
 
