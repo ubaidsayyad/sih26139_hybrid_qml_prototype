@@ -30,25 +30,34 @@
     <a href="{{ url_for('index') }}">Overview</a>
     <a href="{{ url_for('about_page') }}">About Us</a>
     {% if current_user.is_authenticated %}
-      <a href="{{ url_for('dashboard') }}">Dashboard</a>
-      <a href="{{ url_for('predict_page') }}">Try it</a>
-      <a href="{{ url_for('upload_page') }}">Upload Batch</a>
-      <a href="{{ url_for('history_page') }}">History</a>
-      <a href="{{ url_for('settings_page') }}">Settings</a>
-      {% if current_user.is_admin %}
-        <a href="{{ url_for('admin_page') }}" style="color: #FCA5A5;">Admin Portal</a>
+      {% if current_user.role == 'patient' %}
+        <a href="{{ url_for('my_reports_page') }}">My Reports</a>
+        <a href="{{ url_for('my_profile_page') }}">My Profile</a>
+      {% else %}
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('predict_page') }}">Try it</a>
+        <a href="{{ url_for('upload_page') }}">Upload Batch</a>
+        <a href="{{ url_for('history_page') }}">History</a>
+        <a href="{{ url_for('settings_page') }}">Settings</a>
+        {% if current_user.is_admin %}
+          <a href="{{ url_for('admin_page') }}" style="color: #FCA5A5;">Admin Portal</a>
+        {% endif %}
+        <a href="{{ url_for('api_docs_page') }}">API Docs</a>
       {% endif %}
+    {% else %}
+      <a href="{{ url_for('api_docs_page') }}">API Docs</a>
     {% endif %}
-    <a href="{{ url_for('api_docs_page') }}">API Docs</a>
   </div>
 
   <div style="display: flex; align-items: center; gap: 12px;">
     {% if current_user.is_authenticated %}
       <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-pure); background: rgba(255,255,255,0.03); padding: 4px 10px; border-radius: var(--radius-full); border: 1px solid var(--border-glass);">
-        <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--primary-cyan); box-shadow: 0 0 8px var(--primary-cyan);"></span>
+        <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: {% if current_user.role == 'patient' %}#10B981{% else %}var(--primary-cyan){% endif %}; box-shadow: 0 0 8px {% if current_user.role == 'patient' %}#10B981{% else %}var(--primary-cyan){% endif %};"></span>
         <span style="font-weight: 500;">{{ current_user.name }}</span>
         {% if current_user.role == 'admin' %}
           <span class="pill" style="padding: 2px 7px; font-size: 10px; background: rgba(239, 68, 68, 0.15); color: #FCA5A5; border-color: rgba(239, 68, 68, 0.3);">Admin</span>
+        {% elif current_user.role == 'patient' %}
+          <span class="pill" style="padding: 2px 7px; font-size: 10px; background: rgba(16, 185, 129, 0.15); color: #34D399; border-color: rgba(16, 185, 129, 0.35);">Patient</span>
         {% else %}
           <span class="pill" style="padding: 2px 7px; font-size: 10px; background: rgba(0, 229, 255, 0.1); color: var(--primary-cyan); border-color: var(--border-cyan);">Doctor</span>
         {% endif %}

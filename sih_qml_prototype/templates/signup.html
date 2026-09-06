@@ -2,24 +2,36 @@
 {% block title %}Register · Quantum Medical Portal{% endblock %}
 
 {% block content %}
-<div class="auth-container" style="max-width: 500px; margin: 30px auto 60px;">
+<div class="auth-container" style="max-width: 520px; margin: 30px auto 60px;">
   <div class="card" style="padding: 32px 28px; border: 1px solid var(--border-glass); box-shadow: 0 16px 36px rgba(0,0,0,0.5);">
     <div class="eyebrow" style="margin-bottom: 8px;">
       <span>●</span>
-      <span>Medical Staff Onboarding</span>
+      <span>Platform Access &amp; Registration</span>
     </div>
     
     <h1 style="font-size: 26px; margin-bottom: 8px; font-family: 'Space Grotesk', sans-serif;">
       Create Account
     </h1>
     <p class="lede" style="font-size: 13.5px; margin-bottom: 24px; color: var(--text-dim);">
-      Join the hybrid quantum-classical medical platform for advanced oncological screening.
+      Join the hybrid quantum-classical medical platform for clinical diagnostics and personalized health monitoring.
     </p>
 
-    <form method="POST" action="{{ url_for('signup_page') }}">
+    <form method="POST" action="{{ url_for('signup_page') }}" id="signup-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
       <div class="form-group" style="margin-bottom: 16px;">
-        <label for="name" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px; color: var(--text-pure);">
+        <label for="role" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px; color: var(--text-pure);">
+          Account Role
+        </label>
+        <select id="role" name="role" onchange="togglePatientFields(this.value)"
+                style="width: 100%; padding: 11px 14px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 14px; outline: none; transition: border-color 0.2s;">
+          <option value="doctor" selected>Doctor / Healthcare Practitioner</option>
+          <option value="patient">Patient Portal User</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label for="name" id="name-label" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px; color: var(--text-pure);">
           Full Name / Practitioner Title
         </label>
         <input type="text" id="name" name="name" required placeholder="Dr. Jane Doe, MD"
@@ -27,24 +39,66 @@
                onfocus="this.style.borderColor='var(--primary-cyan)'" onblur="this.style.borderColor='var(--border-subtle)'">
       </div>
 
-      <div class="form-group" style="margin-bottom: 16px;">
-        <label for="email" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px; color: var(--text-pure);">
-          Work Email Address
-        </label>
-        <input type="email" id="email" name="email" required placeholder="jane.doe@quantum.health"
-               style="width: 100%; padding: 11px 14px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 14px; outline: none; transition: border-color 0.2s;"
-               onfocus="this.style.borderColor='var(--primary-cyan)'" onblur="this.style.borderColor='var(--border-subtle)'">
+      <!-- Additional Dynamic Patient Profile Fields -->
+      <div id="patient-fields" style="display: none; background: rgba(0, 229, 255, 0.03); border: 1px solid rgba(0, 229, 255, 0.22); border-radius: var(--radius-sm); padding: 18px 16px; margin-bottom: 18px;">
+        <div style="font-size: 12px; font-weight: 600; color: var(--primary-cyan); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; display: flex; align-items: center; gap: 6px;">
+          <span>🩺</span> Patient Health Record Details
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div class="form-group">
+            <label for="patient_age" style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: var(--text-pure);">
+              Age <span style="color: #F87171;">*</span>
+            </label>
+            <input type="number" id="patient_age" name="patient_age" min="1" max="120" placeholder="e.g. 45"
+                   style="width: 100%; padding: 10px 12px; background: rgba(11, 18, 32, 0.9); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 13.5px; outline: none;"
+                   onfocus="this.style.borderColor='var(--primary-cyan)'" onblur="this.style.borderColor='var(--border-subtle)'">
+          </div>
+
+          <div class="form-group">
+            <label for="patient_gender" style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: var(--text-pure);">
+              Gender (optional)
+            </label>
+            <select id="patient_gender" name="patient_gender"
+                    style="width: 100%; padding: 10px 12px; background: rgba(11, 18, 32, 0.9); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 13.5px; outline: none;"
+                    onfocus="this.style.borderColor='var(--primary-cyan)'" onblur="this.style.borderColor='var(--border-subtle)'">
+              <option value="">Select Gender</option>
+              <option value="Female">Female</option>
+              <option value="Male">Male</option>
+              <option value="Other">Other</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label for="patient_dob" style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: var(--text-pure);">
+              Date of Birth (optional)
+            </label>
+            <input type="date" id="patient_dob" name="patient_dob"
+                   style="width: 100%; padding: 9px 12px; background: rgba(11, 18, 32, 0.9); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 13px; outline: none;"
+                   onfocus="this.style.borderColor='var(--primary-cyan)'" onblur="this.style.borderColor='var(--border-subtle)'">
+          </div>
+
+          <div class="form-group">
+            <label for="patient_phone" style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: var(--text-pure);">
+              Phone (optional)
+            </label>
+            <input type="tel" id="patient_phone" name="patient_phone" placeholder="+1 (555) 000-0000"
+                   style="width: 100%; padding: 10px 12px; background: rgba(11, 18, 32, 0.9); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 13.5px; outline: none;"
+                   onfocus="this.style.borderColor='var(--primary-cyan)'" onblur="this.style.borderColor='var(--border-subtle)'">
+          </div>
+        </div>
       </div>
 
       <div class="form-group" style="margin-bottom: 16px;">
-        <label for="role" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px; color: var(--text-pure);">
-          Account Role
+        <label for="email" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px; color: var(--text-pure);">
+          Email Address
         </label>
-        <select id="role" name="role"
-                style="width: 100%; padding: 11px 14px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 14px; outline: none; transition: border-color 0.2s;">
-          <option value="doctor" selected>Clinical Doctor / Oncologist</option>
-          <option value="admin">System Administrator</option>
-        </select>
+        <input type="email" id="email" name="email" required placeholder="user@quantum.health"
+               style="width: 100%; padding: 11px 14px; background: rgba(11, 18, 32, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-pure); font-size: 14px; outline: none; transition: border-color 0.2s;"
+               onfocus="this.style.borderColor='var(--primary-cyan)'" onblur="this.style.borderColor='var(--border-subtle)'">
       </div>
 
       <div class="form-group" style="margin-bottom: 16px;">
@@ -66,7 +120,7 @@
       </div>
 
       <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px 16px; font-size: 14.5px;">
-        <span>📝</span> Create Account & Enter Portal
+        <span>📝</span> Create Account &amp; Enter Portal
       </button>
     </form>
 
@@ -78,4 +132,35 @@
     </div>
   </div>
 </div>
+
+<script>
+function togglePatientFields(role) {
+  const patientFields = document.getElementById('patient-fields');
+  const ageInput = document.getElementById('patient_age');
+  const nameLabel = document.getElementById('name-label');
+  const nameInput = document.getElementById('name');
+  
+  if (role === 'patient') {
+    patientFields.style.display = 'block';
+    if (ageInput) ageInput.required = true;
+    if (nameLabel) nameLabel.innerText = 'Patient Full Name';
+    if (nameInput) nameInput.placeholder = 'e.g. Jane Doe';
+  } else {
+    patientFields.style.display = 'none';
+    if (ageInput) {
+      ageInput.required = false;
+      ageInput.value = '';
+    }
+    if (nameLabel) nameLabel.innerText = 'Full Name / Practitioner Title';
+    if (nameInput) nameInput.placeholder = 'Dr. Jane Doe, MD';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const roleSelect = document.getElementById('role');
+  if (roleSelect) {
+    togglePatientFields(roleSelect.value);
+  }
+});
+</script>
 {% endblock %}

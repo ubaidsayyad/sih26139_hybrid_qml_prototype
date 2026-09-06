@@ -24,7 +24,7 @@ class User(db.Model, UserMixin):
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(20), nullable=False, default="doctor")  # 'doctor' or 'admin'
+    role = db.Column(db.String(20), nullable=False, default="doctor")  # 'doctor', 'admin', or 'patient'
     api_key = db.Column(db.String(64), unique=True, nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
 
@@ -48,6 +48,18 @@ class User(db.Model, UserMixin):
     @property
     def is_admin(self) -> bool:
         return self.role == "admin"
+
+    @property
+    def is_doctor(self) -> bool:
+        return self.role == "doctor"
+
+    @property
+    def is_patient(self) -> bool:
+        return self.role == "patient"
+
+    @property
+    def is_clinician(self) -> bool:
+        return self.role in ("doctor", "admin")
 
     def generate_api_key(self) -> str:
         """Generates and assigns a new cryptographically secure API key."""
@@ -128,3 +140,35 @@ class Prediction(db.Model):
 
     def __repr__(self):
         return f"<Prediction #{self.id} User:{self.user_id} Result:{self.prediction_result} ({self.confidence:.2f})>"
+
+
+class PatientProfile(db.Model):
+    __tablename__ = "patient_profiles"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    full_name = db.Column(db.String(150), nullable=False)
+    age = db.Column(db.Integer, nullable=False)
+    gender = db.Column(db.String(30), nullable=True)
+    date_of_birth = db.Column(db.String(20), nullable=True)
+    phone = db.Column(db.String(30), nullable=True)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
+
+    # 1-to-1 Relationship with User
+    user = db.relationship("User", backref=db.backref("patient_profile", uselist=False, cascade="all, delete-orphan"))
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "full_name": self.full_name,
+            "age": self.age,
+            "gender": self.gender,
+            "date_of_birth": self.date_of_birth,
+            "phone": self.phone,
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None
+        }
+
+    def __repr__(self):
+        return f"<PatientProfile #{self.id} User:{self.user_id} Name:'{self.full_name}' Age:{self.age}>"
+

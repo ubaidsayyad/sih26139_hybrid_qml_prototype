@@ -49,7 +49,7 @@ from flask_wtf.csrf import CSRFProtect, CSRFError
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-from core.models import db, User, Prediction
+from core.models import db, User, Prediction, PatientProfile
 from core.pipeline_runner import run_full_pipeline
 from core.patient_batch import generate_sample_csv, validate_and_process_csv
 from core.pdf_report import generate_prediction_pdf
@@ -118,11 +118,29 @@ def require_api_key(f):
     return decorated_function
 
 
+def clinician_required(f):
+    """Decorator ensuring current user is a clinician (Doctor or Admin), cleanly redirecting patients to /my-reports."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for("login_page", next=request.path))
+        if current_user.role == "patient":
+            flash("Access restricted: Clinical and diagnostic tools are reserved for healthcare practitioners. You have been redirected to your patient portal.", "info")
+            return redirect(url_for("my_reports_page"))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 def admin_required(f):
     """Decorator to restrict route access strictly to users with the 'admin' role."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or current_user.role != "admin":
+        if not current_user.is_authenticated:
+            return redirect(url_for("login_page", next=request.path))
+        if current_user.role == "patient":
+            flash("Access restricted: System Administrator privileges required. You have been redirected to your patient portal.", "error")
+            return redirect(url_for("my_reports_page"))
+        if current_user.role != "admin":
             flash("Access denied: System Administrator privileges required.", "error")
             return redirect(url_for("dashboard"))
         return f(*args, **kwargs)
@@ -249,6 +267,8 @@ def health_check():
 @limiter.limit("5 per minute", methods=["POST"])
 def login_page():
     if current_user.is_authenticated:
+        if current_user.role == "patient":
+            return redirect(url_for("my_reports_page"))
         return redirect(url_for("dashboard"))
 
     next_url = request.args.get("next") or request.form.get("next")
@@ -261,9 +281,18 @@ def login_page():
         if user and user.check_password(password):
             login_user(user, remember=True)
             flash(f"Welcome back, {user.name}!", "success")
-            if next_url and next_url.startswith("/"):
-                return redirect(next_url)
-            return redirect(url_for("dashboard"))
+            
+            # Role-based landing redirect
+            if user.role == "patient":
+                # Ensure patient is not forwarded into practitioner clinical tools
+                restricted_prefixes = ("/dashboard", "/predict", "/upload", "/history", "/admin", "/settings", "/progress")
+                if next_url and next_url.startswith("/") and not any(next_url.startswith(p) for p in restricted_prefixes):
+                    return redirect(next_url)
+                return redirect(url_for("my_reports_page"))
+            else:
+                if next_url and next_url.startswith("/"):
+                    return redirect(next_url)
+                return redirect(url_for("dashboard"))
         else:
             flash("Invalid email address or password. Please verify your credentials.", "error")
 
@@ -273,6 +302,8 @@ def login_page():
 @app.route("/signup", methods=["GET", "POST"])
 def signup_page():
     if current_user.is_authenticated:
+        if current_user.role == "patient":
+            return redirect(url_for("my_reports_page"))
         return redirect(url_for("dashboard"))
 
     if request.method == "POST":
@@ -284,7 +315,7 @@ def signup_page():
 
         # Validation rules
         if not name or len(name) < 2:
-            flash("Please enter your full name or professional title.", "error")
+            flash("Please enter your full name or legal title.", "error")
             return render_template("signup.html")
 
         email_regex = r"^[\w\.-]+@[\w\.-]+\.\w+$"
@@ -292,16 +323,46 @@ def signup_page():
             flash("Please provide a valid corporate or clinical email address.", "error")
             return render_template("signup.html")
 
-        if role not in ("doctor", "admin"):
+        # Admin accounts cannot self-signup; restrict strictly to doctor or patient
+        if role not in ("doctor", "patient"):
             role = "doctor"
 
         if len(password) < 8:
-            flash("Password must contain at least 8 characters for clinical security.", "error")
+            flash("Password must contain at least 8 characters for medical record security.", "error")
             return render_template("signup.html")
 
         if password != confirm_password:
             flash("Passwords do not match. Please verify and re-enter.", "error")
             return render_template("signup.html")
+
+        # Patient-specific required and optional fields
+        patient_age = None
+        patient_gender = None
+        patient_dob = None
+        patient_phone = None
+        patient_full_name = name
+
+        if role == "patient":
+            raw_patient_name = (request.form.get("patient_name") or "").strip()
+            if raw_patient_name:
+                patient_full_name = raw_patient_name
+
+            age_raw = (request.form.get("patient_age") or request.form.get("age") or "").strip()
+            if not age_raw:
+                flash("Please provide your age for your patient health record.", "error")
+                return render_template("signup.html")
+            try:
+                patient_age = int(age_raw)
+                if patient_age < 1 or patient_age > 125:
+                    flash("Please provide a realistic age (between 1 and 125).", "error")
+                    return render_template("signup.html")
+            except (ValueError, TypeError):
+                flash("Age must be a valid whole number.", "error")
+                return render_template("signup.html")
+
+            patient_gender = (request.form.get("patient_gender") or request.form.get("gender") or "").strip() or None
+            patient_dob = (request.form.get("patient_dob") or request.form.get("date_of_birth") or "").strip() or None
+            patient_phone = (request.form.get("patient_phone") or request.form.get("phone") or "").strip() or None
 
         # Duplicate email check
         existing_user = User.query.filter_by(email=email).first()
@@ -313,11 +374,30 @@ def signup_page():
         new_user = User(name=name, email=email, role=role)
         new_user.set_password(password)
         db.session.add(new_user)
+        db.session.flush()
+
+        # Create linked PatientProfile if role is patient
+        if role == "patient":
+            profile = PatientProfile(
+                user_id=new_user.id,
+                full_name=patient_full_name,
+                age=patient_age,
+                gender=patient_gender,
+                date_of_birth=patient_dob,
+                phone=patient_phone
+            )
+            db.session.add(profile)
+
         db.session.commit()
 
         login_user(new_user)
-        flash(f"Account successfully registered! Welcome to the platform, {name}.", "success")
-        return redirect(url_for("dashboard"))
+        
+        if role == "patient":
+            flash(f"Patient account registered! Welcome to your personal health portal, {name}.", "success")
+            return redirect(url_for("my_reports_page"))
+        else:
+            flash(f"Account successfully registered! Welcome to the platform, {name}.", "success")
+            return redirect(url_for("dashboard"))
 
     return render_template("signup.html")
 
@@ -328,6 +408,26 @@ def logout_api():
     logout_user()
     flash("You have been securely signed out of the quantum medical console.", "info")
     return redirect(url_for("login_page"))
+
+
+# ------------------------------------------------------------------------------
+# Patient Portal Routes
+# ------------------------------------------------------------------------------
+
+@app.route("/my-reports")
+@login_required
+def my_reports_page():
+    """Personal diagnostic reports portal for patient accounts."""
+    profile = current_user.patient_profile if hasattr(current_user, "patient_profile") else None
+    return render_template("my_reports.html", profile=profile)
+
+
+@app.route("/my-profile")
+@login_required
+def my_profile_page():
+    """Personal health profile view for patient accounts."""
+    profile = current_user.patient_profile if hasattr(current_user, "patient_profile") else None
+    return render_template("my_profile.html", profile=profile)
 
 
 # ------------------------------------------------------------------------------
@@ -353,6 +453,7 @@ def about_page():
 
 @app.route("/run", methods=["POST"])
 @login_required
+@clinician_required
 def run():
     with JOB_LOCK:
         if JOB["status"] == "running":
@@ -383,12 +484,14 @@ def run():
 
 @app.route("/progress")
 @login_required
+@clinician_required
 def progress_page():
     return render_template("progress.html", has_run=STATE["run"] is not None)
 
 
 @app.route("/run/status")
 @login_required
+@clinician_required
 def run_status():
     with JOB_LOCK:
         return jsonify({
@@ -405,6 +508,7 @@ def run_status():
 
 @app.route("/dashboard")
 @login_required
+@clinician_required
 def dashboard():
     if STATE["run"] is None:
         flash("Please run the pipeline first to generate model benchmark results.", "info")
@@ -429,6 +533,7 @@ def dashboard():
 
 @app.route("/predict")
 @login_required
+@clinician_required
 def predict_page():
     if STATE["run"] is None:
         flash("Please run the pipeline first to train the quantum and classical models.", "info")
@@ -441,6 +546,7 @@ def predict_page():
 
 @app.route("/predict", methods=["POST"])
 @login_required
+@clinician_required
 def predict_api():
     if STATE["run"] is None:
         return jsonify({"error": "No model loaded. Please run the pipeline first."}), 400
@@ -530,6 +636,7 @@ def predict_api():
 
 @app.route("/upload", methods=["GET"])
 @login_required
+@clinician_required
 def upload_page():
     if STATE["run"] is None:
         flash("Please run the pipeline first to train the quantum and classical models before screening patient batches.", "info")
@@ -540,6 +647,7 @@ def upload_page():
 
 @app.route("/upload", methods=["POST"])
 @login_required
+@clinician_required
 def upload_api():
     if STATE["run"] is None:
         error_msg = "No trained models loaded. Please run the quantum pipeline first."
@@ -642,6 +750,7 @@ def download_sample_csv():
 
 @app.route("/history")
 @login_required
+@clinician_required
 def history_page():
     page = request.args.get("page", 1, type=int)
     model_filter = (request.args.get("model") or "").strip()
@@ -678,6 +787,7 @@ def history_page():
 
 @app.route("/history/<int:pred_id>")
 @login_required
+@clinician_required
 def history_detail(pred_id):
     pred = db.session.get(Prediction, pred_id)
     if not pred:
@@ -694,6 +804,7 @@ def history_detail(pred_id):
 
 @app.route("/history/<int:pred_id>/pdf")
 @login_required
+@clinician_required
 def download_prediction_pdf(pred_id):
     pred = db.session.get(Prediction, pred_id)
     if not pred:
@@ -1017,6 +1128,7 @@ def api_v1_health():
 
 @app.route("/settings", methods=["GET"])
 @login_required
+@clinician_required
 def settings_page():
     """Practitioner preferences & API Key access dashboard."""
     current_user.ensure_api_key()
@@ -1026,6 +1138,7 @@ def settings_page():
 
 @app.route("/settings/regenerate-key", methods=["POST"])
 @login_required
+@clinician_required
 def regenerate_api_key_route():
     """Revokes existing API key and issues a fresh one."""
     new_key = current_user.generate_api_key()

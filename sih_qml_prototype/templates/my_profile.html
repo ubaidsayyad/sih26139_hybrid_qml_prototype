@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}My Profile · Patient Portal · SIH26139{% endblock %}
+
+{% block content %}
+<section class="dash-header">
+  <div class="eyebrow">
+    <span>●</span>
+    <span>Personal Health Profile</span>
+  </div>
+  <h1>Patient Profile</h1>
+  <p class="lede">
+    Review your recorded patient demographic information, clinical identification numbers, and contact credentials.
+  </p>
+</section>
+
+<!-- Profile Details Card -->
+<div class="card wide" style="margin-bottom: 24px; border: 1px solid var(--border-glass);">
+  <div class="eyebrow" style="margin-bottom: 6px;">
+    <span>●</span>
+    <span>Demographic & Account Information</span>
+  </div>
+  <h2 style="margin-bottom: 20px;">Personal Health Details</h2>
+  
+  <div class="grid-3" style="gap: 16px; margin-bottom: 20px;">
+    <div class="card" style="background: rgba(18, 28, 51, 0.7); border: 1px solid var(--border-subtle); padding: 14px 18px;">
+      <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Full Legal Name</span>
+      <div style="font-size: 17px; font-weight: 700; color: var(--text-pure); margin-top: 4px;">
+        {{ profile.full_name if profile else current_user.name }}
+      </div>
+    </div>
+
+    <div class="card" style="background: rgba(18, 28, 51, 0.7); border: 1px solid var(--border-subtle); padding: 14px 18px;">
+      <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Age</span>
+      <div style="font-size: 16px; font-weight: 600; color: var(--text-pure); margin-top: 4px;">
+        {{ profile.age if profile else '—' }} years old
+      </div>
+    </div>
+
+    <div class="card" style="background: rgba(18, 28, 51, 0.7); border: 1px solid var(--border-subtle); padding: 14px 18px;">
+      <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Gender</span>
+      <div style="font-size: 16px; font-weight: 600; color: var(--text-pure); margin-top: 4px;">
+        {{ profile.gender if profile and profile.gender else 'Not specified' }}
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-3" style="gap: 16px; margin-bottom: 20px;">
+    <div class="card" style="background: rgba(18, 28, 51, 0.7); border: 1px solid var(--border-subtle); padding: 14px 18px;">
+      <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Date of Birth</span>
+      <div style="font-size: 15px; font-weight: 600; color: var(--text-pure); margin-top: 4px; font-family: var(--font-mono);">
+        {{ profile.date_of_birth if profile and profile.date_of_birth else 'Not recorded' }}
+      </div>
+    </div>
+
+    <div class="card" style="background: rgba(18, 28, 51, 0.7); border: 1px solid var(--border-subtle); padding: 14px 18px;">
+      <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Contact Phone</span>
+      <div style="font-size: 15px; font-weight: 600; color: var(--text-pure); margin-top: 4px; font-family: var(--font-mono);">
+        {{ profile.phone if profile and profile.phone else 'Not provided' }}
+      </div>
+    </div>
+
+    <div class="card" style="background: rgba(18, 28, 51, 0.7); border: 1px solid var(--border-subtle); padding: 14px 18px;">
+      <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Portal Identifier</span>
+      <div style="font-size: 15px; font-weight: 600; color: var(--primary-cyan); margin-top: 4px; font-family: var(--font-mono);">
+        PT-{{ "%04d"|format(current_user.id) }}
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="gap: 16px;">
+    <div class="card" style="background: rgba(18, 28, 51, 0.7); border: 1px solid var(--border-subtle); padding: 14px 18px;">
+      <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Registered Email</span>
+      <div style="font-size: 15px; font-weight: 600; color: var(--text-pure); margin-top: 4px; font-family: var(--font-mono);">
+        {{ current_user.email }}
+      </div>
+    </div>
+
+    <div class="card" style="background: rgba(18, 28, 51, 0.7); border: 1px solid var(--border-subtle); padding: 14px 18px;">
+      <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Role Privilege</span>
+      <div style="margin-top: 4px;">
+        <span class="pill" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border-color: rgba(16, 185, 129, 0.35);">Patient Portal Account</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
