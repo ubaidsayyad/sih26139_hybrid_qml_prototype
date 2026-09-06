@@ -1,0 +1,687 @@
+{% extends "base.html" %}
+
+{% block title %}Find Cancer Care Near You · HybridQML{% endblock %}
+
+{% block extra_head %}
+<!-- Leaflet.js Open-Source Mapping CDN -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+{% endblock %}
+
+{% block content %}
+<div class="find-care-container">
+
+  <!-- Header & Entrance Animation Area -->
+  <header class="find-care-header reveal-on-scroll">
+    <div class="pill" style="display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px; border-color: rgba(0, 229, 255, 0.3); background: rgba(0, 229, 255, 0.08); color: var(--primary-cyan); font-size: 12px;">
+      <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--primary-cyan); box-shadow: 0 0 8px var(--primary-cyan);"></span>
+      Open-Source Geospatial Health Directory
+    </div>
+    <h1 class="find-care-title">
+      Find Cancer Care <span style="background: linear-gradient(135deg, #00E5FF, #3B82F6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Near You</span>
+    </h1>
+    <p class="find-care-subheading">
+      Locate nearby oncology centers, specialized cancer hospitals, and healthcare facilities using privacy-preserving OpenStreetMap intelligence.
+    </p>
+
+    <!-- Required Privacy & Medical Disclaimer -->
+    <div class="find-care-disclaimer">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+      </svg>
+      <div>
+        <strong>Privacy & Clinical Disclaimer:</strong> Location data is used only in your browser to search for nearby facilities and is never sent to or stored on our servers. Facility data is community-sourced (OpenStreetMap) and may be incomplete — always verify details directly with the facility.
+      </div>
+    </div>
+  </header>
+
+  <!-- Search & Filter Controls -->
+  <div class="find-care-controls-card">
+    <div class="find-care-search-inputs">
+      <!-- Geolocation Quick Action -->
+      <button type="button" id="btn-use-location" class="pill" style="cursor: pointer; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; font-weight: 600; font-size: 13.5px; background: rgba(0, 229, 255, 0.12); border-color: var(--border-cyan); color: var(--primary-cyan); transition: all 0.2s ease;">
+        <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+        <span id="btn-location-text">Use My Current Location</span>
+      </button>
+
+      <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">or</span>
+
+      <!-- Manual City / Pincode Fallback Input -->
+      <form id="form-manual-search" style="display: flex; flex: 1 1 260px; gap: 8px;" onsubmit="handleManualSearch(event)">
+        <div class="find-care-input-group">
+          <svg class="input-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          <input type="text" id="input-city-search" placeholder="Enter city, town, or pincode / zip..." autocomplete="off" />
+        </div>
+        <button type="submit" class="pill" style="cursor: pointer; padding: 10px 18px; font-weight: 600; font-size: 13.5px; background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.2); color: var(--text-pure); transition: all 0.2s ease;">
+          Search
+        </button>
+      </form>
+    </div>
+
+    <!-- Radius Filters -->
+    <div class="radius-filter-group">
+      <span class="filter-label">Radius:</span>
+      <button type="button" class="radius-btn active" data-radius="15000" onclick="setRadius(15000, this)">15 km</button>
+      <button type="button" class="radius-btn" data-radius="30000" onclick="setRadius(30000, this)">30 km</button>
+      <button type="button" class="radius-btn" data-radius="50000" onclick="setRadius(50000, this)">50 km</button>
+    </div>
+  </div>
+
+  <!-- Main 2-Column Responsive Layout (NOT wrapped in reveal-on-scroll to avoid delayed map layout) -->
+  <div class="find-care-layout">
+
+    <!-- Interactive Map Column -->
+    <div class="find-care-map-wrapper">
+      <!-- Geolocation Friendly Banner (Initial or Fallback) -->
+      <div id="geo-prompt-banner" class="geo-prompt-overlay" style="display: none;">
+        <svg style="width: 20px; height: 20px; color: var(--primary-cyan); flex-shrink: 0;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span id="geo-banner-message">Allow location access to find cancer treatment centers near you.</span>
+        <button type="button" onclick="requestBrowserGeolocation()" class="pill" style="padding: 4px 12px; font-size: 12px; font-weight: 600; background: var(--primary-cyan); color: #000; border-color: var(--primary-cyan); cursor: pointer;">
+          Allow
+        </button>
+        <button type="button" onclick="dismissGeoBanner()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; font-size: 16px; line-height: 1;">
+          &times;
+        </button>
+      </div>
+
+      <div id="find-care-map"></div>
+    </div>
+
+    <!-- Results List & Status States Column -->
+    <div class="find-care-results-panel">
+      <!-- Results Header -->
+      <div class="results-header-bar">
+        <div class="results-count-title">
+          <span>Facilities</span>
+          <span id="badge-count" class="pill" style="padding: 2px 8px; font-size: 11px; background: rgba(0, 229, 255, 0.15); color: var(--primary-cyan); border-color: var(--border-cyan);">0</span>
+        </div>
+        <div id="results-search-center" class="results-location-badge">Location: Initializing...</div>
+      </div>
+
+      <!-- State: Loading -->
+      <div id="find-care-loading" class="find-care-status-state" style="display: none;">
+        <div class="status-pulse-spinner"></div>
+        <div class="status-title" id="loading-title">Finding Healthcare Facilities...</div>
+        <div class="status-desc" id="loading-desc">Querying OpenStreetMap Overpass API for nearby hospitals and oncology centers.</div>
+      </div>
+
+      <!-- State: Empty Results -->
+      <div id="find-care-empty" class="find-care-status-state" style="display: none;">
+        <div class="status-icon-circle empty">
+          <svg style="width: 26px; height: 26px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </div>
+        <div class="status-title" id="empty-title">No Facilities Found Nearby</div>
+        <div class="status-desc" id="empty-desc">
+          No cancer treatment centers or hospitals found within <span id="empty-radius-text">15km</span>. Try expanding your search radius or searching for a nearby major city.
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 6px;">
+          <button type="button" class="pill" onclick="expandRadiusTo(30000)" style="cursor: pointer; padding: 8px 16px; font-size: 13px; background: rgba(0, 229, 255, 0.12); color: var(--primary-cyan); border-color: var(--border-cyan);">
+            Expand to 30 km
+          </button>
+          <button type="button" class="pill" onclick="expandRadiusTo(50000)" style="cursor: pointer; padding: 8px 16px; font-size: 13px; background: rgba(255, 255, 255, 0.08); color: var(--text-pure); border-color: rgba(255, 255, 255, 0.2);">
+            Expand to 50 km
+          </button>
+        </div>
+      </div>
+
+      <!-- State: Error / Timeout -->
+      <div id="find-care-error" class="find-care-status-state" style="display: none;">
+        <div class="status-icon-circle error">
+          <svg style="width: 26px; height: 26px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <div class="status-title" id="error-title">Search Request Timed Out</div>
+        <div class="status-desc" id="error-desc">
+          The public OpenStreetMap service is currently experiencing high latency. Please retry or adjust your search.
+        </div>
+        <button type="button" class="pill" onclick="retryLastSearch()" style="cursor: pointer; margin-top: 6px; padding: 8px 20px; font-weight: 600; font-size: 13px; background: rgba(239, 68, 68, 0.15); color: #FCA5A5; border-color: rgba(239, 68, 68, 0.35);">
+          Retry Search
+        </button>
+      </div>
+
+      <!-- Populated Results List -->
+      <div id="find-care-list" class="find-care-list">
+        <!-- Rendered dynamically by JavaScript -->
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Client-Side Geolocation, Nominatim, Overpass, and Leaflet Orchestrator -->
+<script>
+(function() {
+  // Global State
+  let map = null;
+  let userMarker = null;
+  let facilityMarkers = [];
+  let currentLat = null;
+  let currentLon = null;
+  let currentLocationLabel = "Current Location";
+  let searchRadius = 15000; // 15 km default
+  let facilitiesData = [];
+  let activeAbortController = null;
+  let lastSearchAction = null;
+
+  // Default fallback center (Mumbai Central Hospital District)
+  const DEFAULT_LAT = 18.9902;
+  const DEFAULT_LON = 72.8406;
+
+  // Haversine distance in kilometers
+  function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  // Initialize Map
+  function initMap() {
+    if (map) return;
+    const mapContainer = document.getElementById('find-care-map');
+    if (!mapContainer) return;
+
+    map = L.map('find-care-map', {
+      zoomControl: true,
+      attributionControl: true
+    }).setView([DEFAULT_LAT, DEFAULT_LON], 12);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    setTimeout(() => { if (map) map.invalidateSize(); }, 300);
+  }
+
+  // Update or create User Marker
+  function updateUserMarker(lat, lon, label) {
+    if (!map) initMap();
+    if (!map) return;
+    if (userMarker) {
+      map.removeLayer(userMarker);
+    }
+    const userIcon = L.divIcon({
+      className: 'user-location-marker-wrapper',
+      html: '<div class="user-location-marker" title="Your Location"></div>',
+      iconSize: [20, 20],
+      iconAnchor: [10, 10]
+    });
+    userMarker = L.marker([lat, lon], { icon: userIcon, zIndexOffset: 1000 }).addTo(map);
+    userMarker.bindPopup(`
+      <div style="font-weight: 700; font-size: 13.5px; color: #00E5FF; margin-bottom: 2px;">Your Search Location</div>
+      <div style="font-size: 12px; color: #CBD5E1;">${label || 'Selected Location'}</div>
+    `);
+  }
+
+  // Clear facility markers
+  function clearFacilityMarkers() {
+    if (!map) return;
+    facilityMarkers.forEach(m => map.removeLayer(m));
+    facilityMarkers = [];
+  }
+
+  // Set Search State Views
+  function showState(stateName, details) {
+    details = details || {};
+    const loadingEl = document.getElementById('find-care-loading');
+    const emptyEl = document.getElementById('find-care-empty');
+    const errorEl = document.getElementById('find-care-error');
+    const listEl = document.getElementById('find-care-list');
+
+    if (!loadingEl || !emptyEl || !errorEl || !listEl) return;
+
+    loadingEl.style.display = 'none';
+    emptyEl.style.display = 'none';
+    errorEl.style.display = 'none';
+    listEl.style.display = 'none';
+
+    if (stateName === 'loading') {
+      loadingEl.style.display = 'flex';
+      if (details.title) document.getElementById('loading-title').innerText = details.title;
+      if (details.desc) document.getElementById('loading-desc').innerText = details.desc;
+    } else if (stateName === 'empty') {
+      emptyEl.style.display = 'flex';
+      document.getElementById('empty-radius-text').innerText = Math.round(searchRadius / 1000) + 'km';
+      document.getElementById('badge-count').innerText = '0';
+    } else if (stateName === 'error') {
+      errorEl.style.display = 'flex';
+      if (details.title) document.getElementById('error-title').innerText = details.title;
+      if (details.desc) document.getElementById('error-desc').innerText = details.desc;
+      document.getElementById('badge-count').innerText = '!';
+    } else if (stateName === 'results') {
+      listEl.style.display = 'flex';
+    }
+  }
+
+  // Query Overpass API for Healthcare & Oncology Centers
+  async function searchFacilities(lat, lon, label) {
+    currentLat = lat;
+    currentLon = lon;
+    currentLocationLabel = label || (lat.toFixed(3) + ', ' + lon.toFixed(3));
+    lastSearchAction = () => searchFacilities(lat, lon, label);
+
+    const badgeEl = document.getElementById('results-search-center');
+    if (badgeEl) badgeEl.innerText = 'Near: ' + currentLocationLabel;
+
+    updateUserMarker(lat, lon, currentLocationLabel);
+    clearFacilityMarkers();
+    showState('loading', {
+      title: 'Locating Healthcare Facilities...',
+      desc: `Querying OpenStreetMap for hospitals & oncology centers within ${Math.round(searchRadius / 1000)}km of ${currentLocationLabel}...`
+    });
+
+    if (activeAbortController) {
+      activeAbortController.abort();
+    }
+    activeAbortController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      if (activeAbortController) activeAbortController.abort();
+    }, 10000); // 10s strict timeout
+
+    const radiusMeters = searchRadius;
+    const overpassQuery = `
+[out:json][timeout:10];
+(
+  node["amenity"="hospital"](around:${radiusMeters},${lat},${lon});
+  way["amenity"="hospital"](around:${radiusMeters},${lat},${lon});
+  node["healthcare"="oncology"](around:${radiusMeters},${lat},${lon});
+  way["healthcare"="oncology"](around:${radiusMeters},${lat},${lon});
+  node["healthcare"="hospital"](around:${radiusMeters},${lat},${lon});
+  way["healthcare"="hospital"](around:${radiusMeters},${lat},${lon});
+);
+out center 40 tags;
+`;
+
+    const endpoints = [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter'
+    ];
+
+    let success = false;
+    let data = null;
+
+    for (const url of endpoints) {
+      try {
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'data=' + encodeURIComponent(overpassQuery),
+          signal: activeAbortController.signal
+        });
+        if (resp.ok) {
+          data = await resp.json();
+          success = true;
+          break;
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          clearTimeout(timeoutId);
+          showState('error', {
+            title: 'Query Timed Out',
+            desc: 'The OpenStreetMap Overpass query exceeded the 10-second limit. Please retry or try a smaller radius.'
+          });
+          return;
+        }
+      }
+    }
+
+    clearTimeout(timeoutId);
+
+    if (!success || !data) {
+      showState('error', {
+        title: 'Unable to Retrieve Facilities',
+        desc: 'OpenStreetMap query service is momentarily unavailable. Please check your connection and retry.'
+      });
+      return;
+    }
+
+    const rawElements = data.elements || [];
+    const facilityMap = new Map();
+
+    rawElements.forEach(el => {
+      const tags = el.tags || {};
+      const fLat = el.lat || (el.center && el.center.lat);
+      const fLon = el.lon || (el.center && el.center.lon);
+      if (!fLat || !fLon) return;
+
+      const name = tags.name || tags['name:en'] || tags.operator || tags.brand;
+      if (!name) return;
+
+      const dedupeKey = name.toLowerCase().trim() + '_' + fLat.toFixed(4) + '_' + fLon.toFixed(4);
+      if (facilityMap.has(dedupeKey)) return;
+
+      const street = tags['addr:street'] ? ((tags['addr:housenumber'] ? tags['addr:housenumber'] + ' ' : '') + tags['addr:street']) : '';
+      const city = tags['addr:city'] || tags['addr:suburb'] || tags['addr:district'] || '';
+      const postcode = tags['addr:postcode'] || '';
+      const addressParts = [street, city, postcode].filter(Boolean);
+      const address = addressParts.length > 0 ? addressParts.join(', ') : 'Address not catalogued in OSM';
+
+      const isOncology = tags.healthcare === 'oncology' ||
+                         tags.speciality === 'oncology' ||
+                         name.toLowerCase().includes('cancer') ||
+                         name.toLowerCase().includes('oncology');
+
+      const dist = calculateDistance(lat, lon, fLat, fLon);
+
+      facilityMap.set(dedupeKey, {
+        id: el.id,
+        name: name,
+        lat: fLat,
+        lon: fLon,
+        distance: dist,
+        isOncology: isOncology,
+        type: isOncology ? 'Oncology Center' : (tags.amenity === 'hospital' || tags.healthcare === 'hospital' ? 'Hospital' : 'Medical Facility'),
+        address: address
+      });
+    });
+
+    facilitiesData = Array.from(facilityMap.values());
+    facilitiesData.sort((a, b) => a.distance - b.distance);
+
+    if (facilitiesData.length === 0) {
+      showState('empty');
+      if (map) map.setView([lat, lon], 12);
+      return;
+    }
+
+    renderFacilities(facilitiesData);
+  }
+
+  // Render List and Map Markers
+  function renderFacilities(facilities) {
+    document.getElementById('badge-count').innerText = facilities.length.toString();
+    const listEl = document.getElementById('find-care-list');
+    listEl.innerHTML = '';
+    showState('results');
+
+    const bounds = L.latLngBounds([userMarker.getLatLng()]);
+
+    facilities.forEach((fac, idx) => {
+      const pinClass = fac.isOncology ? 'hospital-map-pin oncology' : 'hospital-map-pin';
+      const pinChar = fac.isOncology ? '🎗' : '+';
+      const hospitalIcon = L.divIcon({
+        className: 'hospital-marker-wrapper',
+        html: `<div class="${pinClass}" id="marker-pin-${idx}"><span>${pinChar}</span></div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -30]
+      });
+
+      const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${fac.lat},${fac.lon}`;
+
+      const marker = L.marker([fac.lat, fac.lon], { icon: hospitalIcon }).addTo(map);
+      marker.bindPopup(`
+        <div style="min-width: 200px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px;">
+            <span style="font-size: 11px; font-weight: 700; color: ${fac.isOncology ? '#C084FC' : '#93C5FD'}; text-transform: uppercase;">
+              ${fac.type}
+            </span>
+            <span style="font-size: 11px; color: #00E5FF; font-weight: 600;">${fac.distance.toFixed(1)} km away</span>
+          </div>
+          <div style="font-size: 14px; font-weight: 700; color: #F8FAFC; margin-bottom: 6px; line-height: 1.3;">
+            ${fac.name}
+          </div>
+          <div style="font-size: 12px; color: #94A3B8; margin-bottom: 10px; line-height: 1.4;">
+            ${fac.address}
+          </div>
+          <div style="display: flex; align-items: center; justify-content: flex-end;">
+            <a href="${directionsUrl}" target="_blank" rel="noopener noreferrer" class="directions-btn" style="padding: 4px 10px; font-size: 11.5px;">
+              Get Directions ↗
+            </a>
+          </div>
+        </div>
+      `);
+
+      marker.on('click', () => {
+        highlightCard(idx);
+      });
+
+      facilityMarkers.push(marker);
+      bounds.extend([fac.lat, fac.lon]);
+
+      // Card Item in List
+      const card = document.createElement('div');
+      card.className = 'facility-card';
+      card.id = `facility-card-${idx}`;
+      card.innerHTML = `
+        <div class="facility-top-row">
+          <div class="facility-name">${fac.name}</div>
+          <div class="facility-distance-badge">${fac.distance.toFixed(1)} km</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="facility-type-tag ${fac.isOncology ? 'oncology' : 'hospital'}">
+            ${fac.isOncology ? '🎗 ' : ''}${fac.type}
+          </span>
+        </div>
+        <div class="facility-address">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+          <span>${fac.address}</span>
+        </div>
+        <div class="facility-actions">
+          <a href="${directionsUrl}" target="_blank" rel="noopener noreferrer" class="directions-btn" onclick="event.stopPropagation()">
+            <svg style="width: 13px; height: 13px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+            </svg>
+            Get Directions
+          </a>
+        </div>
+      `;
+
+      card.addEventListener('click', () => {
+        highlightCard(idx);
+        map.flyTo([fac.lat, fac.lon], 15, { animate: true, duration: 0.8 });
+        marker.openPopup();
+      });
+
+      listEl.appendChild(card);
+    });
+
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+  }
+
+  function highlightCard(idx) {
+    document.querySelectorAll('.facility-card').forEach(c => c.classList.remove('is-active'));
+    const targetCard = document.getElementById(`facility-card-${idx}`);
+    if (targetCard) {
+      targetCard.classList.add('is-active');
+      targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  // Geocode City / Postal code via OpenStreetMap Nominatim API
+  window.handleManualSearch = async function(e) {
+    if (e) e.preventDefault();
+    const input = document.getElementById('input-city-search');
+    const query = (input.value || '').trim();
+    if (!query) {
+      input.focus();
+      return;
+    }
+
+    dismissGeoBanner();
+    showState('loading', {
+      title: `Geocoding "${query}"...`,
+      desc: 'Searching OpenStreetMap Nominatim directory for location coordinates...'
+    });
+
+    try {
+      const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+      const resp = await fetch(nomUrl, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!resp.ok) throw new Error('Geocoding request failed');
+      const data = await resp.json();
+      if (!data || data.length === 0) {
+        showState('empty');
+        document.getElementById('empty-title').innerText = `Location "${query}" Not Found`;
+        document.getElementById('empty-desc').innerText = 'Please check the spelling of your city or postal code and try again.';
+        return;
+      }
+      const topResult = data[0];
+      const lat = parseFloat(topResult.lat);
+      const lon = parseFloat(topResult.lon);
+      const displayName = topResult.display_name.split(',')[0];
+      searchFacilities(lat, lon, displayName);
+    } catch (err) {
+      showState('error', {
+        title: 'Geocoding Service Error',
+        desc: 'Could not connect to Nominatim geocoding service. Please check your connection or retry.'
+      });
+    }
+  };
+
+  // Browser Geolocation Prompt & Handler
+  window.requestBrowserGeolocation = function() {
+    dismissGeoBanner();
+    if (!navigator.geolocation) {
+      showGeoFallbackMessage("Geolocation is not supported by your browser. Please search manually by city or pincode.");
+      return;
+    }
+
+    const btnText = document.getElementById('btn-location-text');
+    if (btnText) btnText.innerText = "Requesting Location...";
+
+    showState('loading', {
+      title: 'Determining Device Location...',
+      desc: 'Waiting for browser location permissions...'
+    });
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (btnText) btnText.innerText = "Use My Current Location";
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        searchFacilities(lat, lon, "Your Current Location");
+      },
+      (err) => {
+        if (btnText) btnText.innerText = "Use My Current Location";
+        let msg = "Location permission was not granted. Please enter your city or pincode in the search box above.";
+        if (err.code === err.PERMISSION_DENIED) {
+          msg = "Location permission was denied. You can search manually by city or pincode above.";
+        } else if (err.code === err.TIMEOUT) {
+          msg = "Location request timed out. Please enter your city or pincode above.";
+        }
+        showGeoFallbackMessage(msg);
+        if (!currentLat) {
+          searchFacilities(DEFAULT_LAT, DEFAULT_LON, "Mumbai Regional Care Hub");
+        }
+      },
+      { timeout: 9000, enableHighAccuracy: true, maximumAge: 60000 }
+    );
+  };
+
+  function showGeoFallbackMessage(msg) {
+    const banner = document.getElementById('geo-prompt-banner');
+    const bannerMsg = document.getElementById('geo-banner-message');
+    if (banner && bannerMsg) {
+      bannerMsg.innerText = msg;
+      banner.style.display = 'flex';
+      const allowBtn = banner.querySelector('button.pill');
+      if (allowBtn) allowBtn.style.display = 'none';
+    }
+  }
+
+  window.dismissGeoBanner = function() {
+    const banner = document.getElementById('geo-prompt-banner');
+    if (banner) banner.style.display = 'none';
+  };
+
+  // Radius adjustment
+  window.setRadius = function(meters, btnEl) {
+    searchRadius = meters;
+    document.querySelectorAll('.radius-btn').forEach(b => b.classList.remove('active'));
+    if (btnEl) btnEl.classList.add('active');
+    if (currentLat && currentLon) {
+      searchFacilities(currentLat, currentLon, currentLocationLabel);
+    }
+  };
+
+  window.expandRadiusTo = function(meters) {
+    const targetBtn = document.querySelector(`.radius-btn[data-radius="${meters}"]`);
+    setRadius(meters, targetBtn);
+  };
+
+  window.retryLastSearch = function() {
+    if (lastSearchAction) {
+      lastSearchAction();
+    } else if (currentLat && currentLon) {
+      searchFacilities(currentLat, currentLon, currentLocationLabel);
+    } else {
+      requestBrowserGeolocation();
+    }
+  };
+
+  // Setup Event Listeners
+  document.addEventListener('DOMContentLoaded', () => {
+    initMap();
+
+    const locBtn = document.getElementById('btn-use-location');
+    if (locBtn) {
+      locBtn.addEventListener('click', requestBrowserGeolocation);
+    }
+
+    const banner = document.getElementById('geo-prompt-banner');
+    if (banner && !window.location.hash) banner.style.display = 'flex';
+
+    const hash = window.location.hash;
+    if (hash === '#manual') {
+      showGeoFallbackMessage("Location permission was denied. You can search manually by city or pincode above.");
+      const input = document.getElementById('input-city-search');
+      if (input) input.value = "Boston";
+      searchFacilities(42.3601, -71.0589, "Boston, MA");
+    } else if (hash === '#empty') {
+      currentLat = 0.0;
+      currentLon = 0.0;
+      currentLocationLabel = "Offshore Zone";
+      const centerEl = document.getElementById('results-search-center');
+      if (centerEl) centerEl.innerText = 'Near: Offshore Zone';
+      updateUserMarker(0.0, 0.0, "Offshore Zone");
+      showState('empty');
+    } else if (hash === '#error') {
+      currentLat = DEFAULT_LAT;
+      currentLon = DEFAULT_LON;
+      const centerEl = document.getElementById('results-search-center');
+      if (centerEl) centerEl.innerText = 'Near: Medical District';
+      updateUserMarker(DEFAULT_LAT, DEFAULT_LON, "Medical District");
+      showState('error', {
+        title: 'Query Timed Out',
+        desc: 'The OpenStreetMap Overpass query exceeded the 10-second limit. Please retry or try a smaller radius.'
+      });
+    } else if (hash === '#geo' || hash === '#mobile') {
+      searchFacilities(18.9902, 72.8406, "Mumbai Medical District");
+    } else {
+      requestBrowserGeolocation();
+    }
+  });
+
+  // Expose test hooks for automated headless testing
+  window.__findCareTestHooks = {
+    setCoordinates: (lat, lon, label) => searchFacilities(lat, lon, label),
+    setEmptyState: () => showState('empty'),
+    setErrorState: () => showState('error', { title: 'Query Timed Out', desc: 'The OpenStreetMap Overpass query exceeded the 10-second limit.' }),
+    getFacilities: () => facilitiesData,
+    getMap: () => map
+  };
+
+})();
+</script>
+{% endblock %}

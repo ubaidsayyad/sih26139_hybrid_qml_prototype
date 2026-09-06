@@ -475,6 +475,12 @@ def about_page():
     return render_template("about.html")
 
 
+@app.route("/find-care")
+def find_care_page():
+    return render_template("find_care.html")
+
+
+
 @app.route("/run", methods=["POST"])
 @login_required
 @clinician_required
