@@ -14,7 +14,7 @@ Uses ReportLab to produce high-resolution, accessible, printable clinical docume
 """
 import io
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.platypus import (
@@ -77,14 +77,14 @@ def generate_prediction_pdf(prediction, practitioner_name="Authorized Clinical P
     """
     buffer = io.BytesIO()
     
-    # 0.5 inch margins = 36 points
+    # 0.5 inch margins = 36 points (compact top/bottom to ensure clean 1-page fit)
     doc = SimpleDocTemplate(
         buffer,
         pagesize=letter,
         leftMargin=36,
         rightMargin=36,
-        topMargin=36,
-        bottomMargin=54
+        topMargin=30,
+        bottomMargin=44
     )
 
     styles = getSampleStyleSheet()
@@ -119,11 +119,11 @@ def generate_prediction_pdf(prediction, practitioner_name="Authorized Clinical P
         'SectionHeading',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=11,
-        leading=14,
+        fontSize=10.5,
+        leading=13,
         textColor=c_brand_dark,
-        spaceBefore=8,
-        spaceAfter=4
+        spaceBefore=6,
+        spaceAfter=3
     )
 
     cell_style = ParagraphStyle(
@@ -165,7 +165,7 @@ def generate_prediction_pdf(prediction, practitioner_name="Authorized Clinical P
         ],
         [
             Paragraph("Hybrid Quantum-Classical ML Diagnostic Platform · SIH26139", sub_style),
-            Paragraph(f"Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}", ParagraphStyle(
+            Paragraph(f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}", ParagraphStyle(
                 'GenDate', parent=styles['Normal'], fontName='Helvetica', fontSize=8, alignment=2, textColor=c_text_muted
             ))
         ]
@@ -177,44 +177,116 @@ def generate_prediction_pdf(prediction, practitioner_name="Authorized Clinical P
         ('TOPPADDING', (0,0), (-1,-1), 0),
     ]))
     story.append(t_header)
-    story.append(Spacer(1, 6))
-    story.append(HRFlowable(width="100%", thickness=1.5, color=c_brand_cyan, spaceBefore=2, spaceAfter=8))
+    story.append(Spacer(1, 4))
+    story.append(HRFlowable(width="100%", thickness=1.5, color=c_brand_cyan, spaceBefore=2, spaceAfter=6))
 
-    # 2. Patient & Practitioner Metadata Box
-    created_str = prediction.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') if hasattr(prediction, 'created_at') and prediction.created_at else datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
-    dataset_str = getattr(prediction, 'dataset_name', 'Breast Cancer Wisconsin (Diagnostic)')
-    
-    meta_table_data = [
-        [
-            Paragraph("<b>Attending Practitioner:</b>", cell_style),
-            Paragraph(str(practitioner_name), cell_bold),
-            Paragraph("<b>Inference Timestamp:</b>", cell_style),
-            Paragraph(created_str, cell_mono)
-        ],
-        [
-            Paragraph("<b>Diagnostic Dataset:</b>", cell_style),
-            Paragraph(dataset_str, cell_style),
-            Paragraph("<b>Model Architecture:</b>", cell_style),
-            Paragraph("4-Qubit VQC (RY-RZ-CX) + Classical Baseline", cell_style)
+    # 2. Patient Information Section
+    story.append(Paragraph("Patient Information", h2_style))
+
+    # Extract patient information from linked PatientRecord or metadata
+    patient_record = getattr(prediction, 'patient_record', None)
+    metadata_dict = getattr(prediction, 'metadata_dict', {}) or {}
+    if not metadata_dict and hasattr(prediction, 'metadata_json') and prediction.metadata_json:
+        try:
+            metadata_dict = json.loads(prediction.metadata_json) if isinstance(prediction.metadata_json, str) else {}
+        except Exception:
+            metadata_dict = {}
+
+    patient_name = None
+    patient_age = None
+    patient_gender = None
+
+    if patient_record:
+        patient_name = getattr(patient_record, 'full_name', None)
+        patient_age = getattr(patient_record, 'age', None)
+        patient_gender = getattr(patient_record, 'gender', None)
+
+    if not patient_name and 'patient_name' in metadata_dict:
+        patient_name = metadata_dict.get('patient_name')
+    if patient_age is None and 'patient_age' in metadata_dict:
+        patient_age = metadata_dict.get('patient_age')
+    if not patient_gender and 'patient_gender' in metadata_dict:
+        patient_gender = metadata_dict.get('patient_gender')
+
+    sample_idx = metadata_dict.get('sample_index', metadata_dict.get('patient_index', metadata_dict.get('patient_id')))
+    if sample_idx is None:
+        sample_idx = getattr(prediction, 'id', 0)
+
+    now_utc = datetime.now(timezone.utc)
+    created_dt = getattr(prediction, 'created_at', None)
+    if created_dt:
+        created_str = created_dt.strftime('%Y-%m-%d %H:%M:%S UTC')
+    else:
+        created_str = now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')
+
+    dataset_str = getattr(prediction, 'dataset_name', None) or 'Breast Cancer Wisconsin (Diagnostic)'
+    practitioner_name = str(practitioner_name or 'Authorized Clinical Practitioner')
+
+    if patient_name:
+        # Named Patient Format: includes Patient Name, Age, Gender (if provided)
+        age_str = f"{patient_age} Years" if patient_age is not None else "Unspecified"
+        gender_str = str(patient_gender) if patient_gender else "Unspecified"
+        patient_table_data = [
+            [
+                Paragraph("<b>Patient Name:</b>", cell_style),
+                Paragraph(f"<b>{patient_name}</b>", cell_bold),
+                Paragraph("<b>Patient Age:</b>", cell_style),
+                Paragraph(f"<b>{age_str}</b>", cell_style)
+            ],
+            [
+                Paragraph("<b>Gender:</b>", cell_style),
+                Paragraph(gender_str, cell_style),
+                Paragraph("<b>Attending Doctor:</b>", cell_style),
+                Paragraph(str(practitioner_name), cell_bold)
+            ],
+            [
+                Paragraph("<b>Inference Timestamp:</b>", cell_style),
+                Paragraph(created_str, cell_mono),
+                Paragraph("<b>Diagnostic Dataset:</b>", cell_style),
+                Paragraph(dataset_str, cell_style)
+            ]
         ]
-    ]
-    t_meta = Table(meta_table_data, colWidths=[120, 160, 110, 150])
-    t_meta.setStyle(TableStyle([
+    else:
+        # Anonymous / Test Sample Format: shows "Sample/Test Record #N", zero blank fields
+        patient_table_data = [
+            [
+                Paragraph("<b>Patient Identification:</b>", cell_style),
+                Paragraph(f"<b>Sample/Test Record #{sample_idx}</b>", cell_bold),
+                Paragraph("<b>Cohort Profile:</b>", cell_style),
+                Paragraph("Anonymous Held-Out Test Cohort", cell_style)
+            ],
+            [
+                Paragraph("<b>Attending Doctor:</b>", cell_style),
+                Paragraph(str(practitioner_name), cell_bold),
+                Paragraph("<b>Model Architecture:</b>", cell_style),
+                Paragraph("4-Qubit VQC + Classical Baseline", cell_style)
+            ],
+            [
+                Paragraph("<b>Inference Timestamp:</b>", cell_style),
+                Paragraph(created_str, cell_mono),
+                Paragraph("<b>Diagnostic Dataset:</b>", cell_style),
+                Paragraph(dataset_str, cell_style)
+            ]
+        ]
+
+    t_patient = Table(patient_table_data, colWidths=[125, 155, 115, 145])
+    t_patient.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#F8FAFC")),
         ('BOX', (0,0), (-1,-1), 0.75, c_border),
         ('INNERGRID', (0,0), (-1,-1), 0.5, c_border),
-        ('TOPPADDING', (0,0), (-1,-1), 4),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ('TOPPADDING', (0,0), (-1,-1), 3.5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3.5),
         ('LEFTPADDING', (0,0), (-1,-1), 6),
         ('RIGHTPADDING', (0,0), (-1,-1), 6),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
-    story.append(t_meta)
-    story.append(Spacer(1, 10))
+    story.append(t_patient)
+    story.append(Spacer(1, 8))
 
     # 3. Diagnostic Outcome Box
-    pred_res = getattr(prediction, 'prediction_result', 'Malignant')
-    confidence_val = float(getattr(prediction, 'confidence', 0.5))
+    pred_res = getattr(prediction, 'prediction_result', None) or 'Malignant'
+    raw_conf = getattr(prediction, 'confidence', None)
+    confidence_val = float(raw_conf if raw_conf is not None else 0.5)
     true_label = getattr(prediction, 'true_label', None)
 
     is_malignant = (pred_res == "Malignant")

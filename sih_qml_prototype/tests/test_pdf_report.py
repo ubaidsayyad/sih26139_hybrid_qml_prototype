@@ -153,3 +153,120 @@ def test_admin_can_download_any_doctor_pdf(client):
     assert res_admin_pdf.status_code == 200
     assert res_admin_pdf.headers["Content-Type"] == "application/pdf"
     assert res_admin_pdf.data.startswith(b"%PDF-")
+
+def _extract_pdf_text(pdf_bytes):
+    import zlib
+    from reportlab.pdfbase.pdfutils import asciiBase85Decode
+    all_text = []
+    idx = 0
+    while True:
+        pos = pdf_bytes.find(b"stream", idx)
+        if pos == -1:
+            break
+        end_pos = pdf_bytes.find(b"endstream", pos)
+        if end_pos == -1:
+            break
+        raw_stream = pdf_bytes[pos+len(b"stream"):end_pos].decode('latin1', errors='ignore').strip()
+        if not raw_stream.endswith("~>"):
+            raw_stream += "~>"
+        try:
+            a85 = asciiBase85Decode(raw_stream)
+            dec = zlib.decompress(a85).decode('latin1', errors='ignore')
+            all_text.append(dec)
+        except Exception:
+            pass
+        idx = end_pos + len(b"endstream")
+    return " ".join(all_text)
+
+def test_named_patient_pdf_generation(client):
+    from core.models import PatientRecord
+
+    with app.app_context():
+        doc = User(name="Dr. Gregory House", email="house.pdf@clinic.org", role="doctor")
+        doc.set_password("Password123!")
+        db.session.add(doc)
+        db.session.commit()
+
+        pat = PatientRecord(
+            full_name="Eleanor Vance",
+            age=48,
+            gender="Female",
+            entered_by=doc.id
+        )
+        db.session.add(pat)
+        db.session.commit()
+
+        pred = Prediction(
+            user_id=doc.id,
+            patient_record_id=pat.id,
+            dataset_name="Breast Cancer Wisconsin (Diagnostic)",
+            model_used="both",
+            input_features=json.dumps({"mean radius": 17.99, "mean texture": 10.38}),
+            prediction_result="Malignant",
+            confidence=0.984,
+            true_label=None,
+            metadata_json=json.dumps({
+                "patient_name": "Eleanor Vance",
+                "patient_age": 48,
+                "patient_gender": "Female",
+                "quantum_prob": 0.984,
+                "classical_prob": 0.961
+            })
+        )
+        db.session.add(pred)
+        db.session.commit()
+        pred_id = pred.id
+
+    client.post("/login", data={"email": "house.pdf@clinic.org", "password": "Password123!"})
+    res = client.get(f"/history/{pred_id}/pdf")
+    assert res.status_code == 200
+    assert res.headers["Content-Type"] == "application/pdf"
+    assert "Eleanor_Vance" in res.headers["Content-Disposition"]
+    
+    full_text = _extract_pdf_text(res.data)
+    assert "Patient Information" in full_text
+    assert "Eleanor Vance" in full_text
+    assert "48 Years" in full_text
+    assert "Female" in full_text
+    assert "Dr. Gregory House" in full_text
+    assert "Malignant" in full_text
+
+def test_anonymous_sample_pdf_generation(client):
+    with app.app_context():
+        doc = User(name="Dr. Allison Cameron", email="cameron.pdf@clinic.org", role="doctor")
+        doc.set_password("Password123!")
+        db.session.add(doc)
+        db.session.commit()
+
+        pred = Prediction(
+            user_id=doc.id,
+            patient_record_id=None,
+            dataset_name="Breast Cancer Wisconsin (Diagnostic)",
+            model_used="both",
+            input_features=json.dumps({"mean radius": 13.54, "mean texture": 14.36}),
+            prediction_result="Benign",
+            confidence=0.952,
+            true_label="Benign",
+            metadata_json=json.dumps({
+                "sample_index": 12,
+                "quantum_prob": 0.952,
+                "classical_prob": 0.941
+            })
+        )
+        db.session.add(pred)
+        db.session.commit()
+        pred_id = pred.id
+
+    client.post("/login", data={"email": "cameron.pdf@clinic.org", "password": "Password123!"})
+    res = client.get(f"/history/{pred_id}/pdf")
+    assert res.status_code == 200
+    assert res.headers["Content-Type"] == "application/pdf"
+    assert f"report_patient_{pred_id}_" in res.headers["Content-Disposition"]
+    
+    full_text = _extract_pdf_text(res.data)
+    assert "Patient Information" in full_text
+    assert "Sample/Test Record #12" in full_text
+    assert "Anonymous Held-Out Test Cohort" in full_text
+    assert "Dr. Allison Cameron" in full_text
+    assert "Benign" in full_text
+
